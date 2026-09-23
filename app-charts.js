@@ -83,6 +83,7 @@ function drawChart(id, type, field, options = {}) {
 
   const canvas = $(id);
   const groups = groupedCounts(field, options);
+  const horizontal = Boolean(options.horizontal);
 
   const labels = groups.map(item => item[0]);
   const data = groups.map(item => item[1]);
@@ -115,6 +116,7 @@ function drawChart(id, type, field, options = {}) {
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      indexAxis: horizontal ? 'y' : 'x',
 
       animation: {
         duration: 250
@@ -147,42 +149,76 @@ function drawChart(id, type, field, options = {}) {
 
       scales:
         type === 'bar'
-          ? {
-              x: {
-                ticks: {
-                  color: '#8e98a9',
+          ? horizontal
+            ? {
+                x: {
+                  beginAtZero: true,
 
-                  font: {
-                    size: 10
+                  ticks: {
+                    color: '#8e98a9',
+
+                    font: {
+                      size: 10
+                    },
+
+                    precision: 0
                   },
 
-                  maxRotation: 35,
-                  minRotation: 0
+                  grid: {
+                    color: '#293140'
+                  }
                 },
 
-                grid: {
-                  display: false
-                }
-              },
+                y: {
+                  ticks: {
+                    color: '#b7c0ce',
 
-              y: {
-                beginAtZero: true,
-
-                ticks: {
-                  color: '#8e98a9',
-
-                  font: {
-                    size: 10
+                    font: {
+                      size: 10
+                    }
                   },
 
-                  precision: 0
-                },
-
-                grid: {
-                  color: '#293140'
+                  grid: {
+                    display: false
+                  }
                 }
               }
-            }
+            : {
+                x: {
+                  ticks: {
+                    color: '#8e98a9',
+
+                    font: {
+                      size: 10
+                    },
+
+                    maxRotation: 35,
+                    minRotation: 0
+                  },
+
+                  grid: {
+                    display: false
+                  }
+                },
+
+                y: {
+                  beginAtZero: true,
+
+                  ticks: {
+                    color: '#8e98a9',
+
+                    font: {
+                      size: 10
+                    },
+
+                    precision: 0
+                  },
+
+                  grid: {
+                    color: '#293140'
+                  }
+                }
+              }
           : {}
     }
   });
@@ -192,20 +228,25 @@ function updateCharts() {
   drawChart(
     'overallConvictionChart',
     'bar',
-    'Classification'
+    'Classification',
+    { horizontal: true }
   );
 
   drawChart(
     'subjectiveConvictionChart',
     'bar',
-    'Category'
+    'Category',
+    { horizontal: true }
   );
 
   drawChart(
     'contractedChart',
-    'pie',
+    'bar',
     'PPV Tag',
-    { excludeBlank: true }
+    {
+      excludeBlank: true,
+      horizontal: true
+    }
   );
 
   drawChart(
@@ -214,5 +255,4 @@ function updateCharts() {
     'Priority'
   );
 }
-
 

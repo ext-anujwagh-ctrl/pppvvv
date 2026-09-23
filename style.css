@@ -149,6 +149,10 @@ h3 {
   padding: 17px;
 }
 
+.chart-card-horizontal {
+  min-height: 325px;
+}
+
 .chart-heading {
   min-height: 54px;
 }
@@ -164,6 +168,10 @@ h3 {
 .chart-wrap {
   position: relative;
   height: 125px;
+}
+
+.chart-card-horizontal .chart-wrap {
+  height: 245px;
 }
 
 .workspace-card {
