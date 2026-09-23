@@ -119,6 +119,28 @@ const ADVANCED_FILTER_HEADERS = FILTER_HEADERS.filter(
   header => !PRIMARY_FILTER_HEADERS.includes(header)
 );
 
+const OPERATIONAL_VIEW_HEADERS = [
+  'Show Title',
+  'Genre',
+  'PPV Tag',
+  'Active/Inactive',
+  'Activity Days (L30D)',
+  'Category',
+  'Show Length',
+  'Priority'
+];
+
+const DETAIL_HEADERS = [
+  'Show ID',
+  'Show Title',
+  ...CSV_HEADERS.filter(
+    header =>
+      !OPERATIONAL_VIEW_HEADERS.includes(header) &&
+      header !== 'Show ID' &&
+      header !== 'Show Title'
+  )
+];
+
 const SHOW_LENGTH_BUCKETS = [
   '0-50',
   '50-100',
@@ -136,4 +158,3 @@ const state = {
 };
 
 const $ = id => document.getElementById(id);
-

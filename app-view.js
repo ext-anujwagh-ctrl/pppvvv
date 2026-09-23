@@ -161,7 +161,7 @@ function openDetails(row) {
   $('detailsTitle').textContent =
     row['Show Title'] || 'Show details';
 
-  $('detailsContent').innerHTML = CSV_HEADERS
+  $('detailsContent').innerHTML = DETAIL_HEADERS
     .map(header => {
       const value = row[header];
 
@@ -190,5 +190,4 @@ function openDetails(row) {
 
   $('detailsModal').classList.remove('hidden');
 }
-
 

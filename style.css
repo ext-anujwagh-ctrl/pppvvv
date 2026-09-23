@@ -224,7 +224,7 @@ h3 {
   border: 1px solid var(--line);
   border-radius: 7px;
   padding: 8px 11px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -307,13 +307,13 @@ h3 {
   text-overflow: ellipsis;
   white-space: nowrap;
   color: #cbd3df;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .multi-filter-toggle b {
   flex: none;
   color: var(--muted);
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 500;
 }
 
@@ -336,7 +336,7 @@ h3 {
 .filter-option-search {
   margin-bottom: 8px;
   padding: 8px 9px;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .filter-menu-actions {
@@ -350,7 +350,7 @@ h3 {
   background: none;
   color: var(--accent-2);
   padding: 3px 0;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -366,7 +366,7 @@ h3 {
   gap: 8px;
   padding: 7px 5px;
   color: #dce1ea;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 400;
   cursor: pointer;
 }
