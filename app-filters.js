@@ -19,7 +19,7 @@ function filterMarkup(field, index) {
         type="button"
       >
         <span>${escapeHTML(field)}</span>
-        <b>All values</b>
+        <b class="filter-chevron">⌄</b>
       </button>
 
       <div class="multi-filter-menu hidden">
@@ -235,7 +235,7 @@ function updateFilterButton(card, selected) {
 
   button.textContent = selected.size
     ? `${selected.size} selected`
-    : 'All values';
+    : '⌄';
 }
 
 function applyFilters() {
@@ -284,6 +284,5 @@ function updateActiveFilterCount() {
   $('activeFilterCount').textContent =
     `${count} filter${count === 1 ? '' : 's'} active`;
 }
-
 
 

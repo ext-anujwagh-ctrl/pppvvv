@@ -312,9 +312,10 @@ h3 {
 
 .multi-filter-toggle b {
   flex: none;
-  color: var(--muted);
-  font-size: 10px;
-  font-weight: 500;
+  color: var(--accent);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 10px;
 }
 
 .multi-filter-menu {
