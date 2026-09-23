@@ -251,8 +251,8 @@ function updateCharts() {
 
   drawChart(
     'priorityChart',
-    'pie',
-    'Priority'
+    'bar',
+    'Priority',
+    { horizontal: true }
   );
 }
-

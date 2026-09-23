@@ -819,6 +819,11 @@ tbody tr:hover {
   column-gap: 28px;
 }
 
+.detail-section:nth-of-type(-n + 3) .detail-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  column-gap: 22px;
+}
+
 .detail-card {
   display: block;
   min-width: 0;
@@ -880,6 +885,10 @@ tbody tr:hover {
   .column-selector {
     grid-template-columns: repeat(2, 1fr);
   }
+
+  .detail-section:nth-of-type(-n + 3) .detail-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 600px) {
@@ -891,6 +900,10 @@ tbody tr:hover {
 
   .details-identity,
   .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-section:nth-of-type(-n + 3) .detail-grid {
     grid-template-columns: 1fr;
   }
 
