@@ -114,8 +114,16 @@ function escapeHTML(value) {
 }
 
 function tag(value) {
+  const displayLabels = {
+    action_needed_p3_failed: 'P3 Failed',
+    action_needed_p3_passed: 'P3 Passed'
+  };
+
+  const displayValue =
+    displayLabels[normalized(value)] || value;
+
   return value
-    ? `<span class="tag">${escapeHTML(value)}</span>`
+    ? `<span class="tag">${escapeHTML(displayValue)}</span>`
     : '—';
 }
 
@@ -138,18 +146,16 @@ function priorityTag(value) {
 
   const normalizedValue = normalized(value);
 
-  const className = [
-    'high',
-    'urgent'
-  ].includes(normalizedValue)
-    ? 'tag-red'
-    : [
-        'medium',
-        'p2'
-      ].includes(normalizedValue)
-      ? 'tag-yellow'
-      : '';
+  const priorityClasses = {
+    p00: 'tag-priority-p00',
+    p0: 'tag-priority-p0',
+    p1: 'tag-priority-p1',
+    p2: 'tag-priority-p2',
+    p3: 'tag-priority-p3'
+  };
 
+  const className =
+    priorityClasses[normalizedValue] || '';
   return `
     <span class="tag ${className}">
       ${escapeHTML(value)}
@@ -157,36 +163,168 @@ function priorityTag(value) {
   `;
 }
 
+const DETAIL_GROUPS = [
+  {
+    title: 'Editorial and priority',
+    fields: [
+      'Is Top Author Show?',
+      'Completed',
+      'Incentive Flag',
+      'L3M Payouts',
+      'Classification',
+      'Contracted',
+      'Editor',
+      'CL',
+      'SCL',
+      'Overall Editorial conviction',
+      'Subjective Conviction'
+    ]
+  },
+  {
+    title: 'Author information',
+    fields: [
+      'Author ID',
+      'Author Name',
+      'Author Locale',
+      'Author Contact',
+      'Author Occupation',
+      'Author Age?',
+      'Registration on Pocket',
+      'Listener Tag',
+      'No. of shows on Pocket (>10K WC)',
+      'No. of contracted shows on Pocket',
+      'Number of other shows in P3/PPV'
+    ]
+  },
+  {
+    title: 'Writer and relationship',
+    fields: [
+      'Writer Relation / Last Touch Point',
+      "Writer's Editing Activity",
+      'Writing on other platforms',
+      'Where are you connected to the writer?',
+      'Editor Connect History',
+      'Writer Cadence',
+      'Date Connected',
+      'Primary Medium',
+      'Connected details',
+      'Chapters / Hrs Planned?',
+      'Writer / Editor Focus'
+    ]
+  },
+  {
+    title: 'Comments and notes',
+    fields: [
+      'Editorial Comments (Writer POV)',
+      'Editorial Comments (Story POV)',
+      'Other Comments (If Any)',
+      'Editorial documents',
+      'Synopsis',
+      'Log of the conversation',
+      'Changes this week',
+      'Risk/Help Needed/CX Escalation Ongoing'
+    ]
+  }
+];
+
+function detailCard(header, value) {
+  const full =
+    value.length > 100 ||
+    header.includes('Comments') ||
+    header.includes('Synopsis') ||
+    header.includes('conversation') ||
+    header.includes('documents') ||
+    header.includes('Changes') ||
+    header.includes('Risk');
+
+  return `
+    <div class="detail-card ${full ? 'full' : ''}">
+      <span class="detail-label">
+        ${escapeHTML(header)}
+      </span>
+      <div class="detail-value">
+        ${escapeHTML(value)}
+      </div>
+    </div>
+  `;
+}
+
 function openDetails(row) {
   $('detailsTitle').textContent =
     row['Show Title'] || 'Show details';
 
-  $('detailsContent').innerHTML = DETAIL_HEADERS
-    .map(header => {
-      const value = row[header];
+  const detailFields = new Set(
+    DETAIL_HEADERS.filter(
+      header =>
+        header !== 'Show ID' &&
+        header !== 'Show Title'
+    )
+  );
 
-      if (!value) return '';
+  const sections = DETAIL_GROUPS
+    .map(section => {
+      const fields = section.fields.filter(
+        field =>
+          detailFields.has(field) &&
+          row[field]
+      );
 
-      const full =
-        value.length > 100 ||
-        header.includes('Comments') ||
-        header.includes('Synopsis') ||
-        header.includes('conversation') ||
-        header.includes('documents');
+      fields.forEach(field => detailFields.delete(field));
+
+      if (!fields.length) return '';
 
       return `
-        <div class="detail-item ${full ? 'full' : ''}">
-          <span class="detail-label">
-            ${escapeHTML(header)}
-          </span>
-
-          <div class="detail-value">
-            ${escapeHTML(value)}
+        <section class="detail-section">
+          <div class="detail-section-heading">
+            <span class="eyebrow">${escapeHTML(section.title)}</span>
           </div>
-        </div>
+          <div class="detail-grid">
+            ${fields
+              .map(field =>
+                detailCard(field, row[field])
+              )
+              .join('')}
+          </div>
+        </section>
       `;
     })
     .join('');
+
+  const remainingFields = [
+    ...detailFields
+  ].filter(field => row[field]);
+
+  const remainingSection = remainingFields.length
+    ? `
+      <section class="detail-section">
+        <div class="detail-section-heading">
+          <span class="eyebrow">Additional information</span>
+        </div>
+        <div class="detail-grid">
+          ${remainingFields
+            .map(field =>
+              detailCard(field, row[field])
+            )
+            .join('')}
+        </div>
+      </section>
+    `
+    : '';
+
+  $('detailsContent').innerHTML = `
+    <div class="details-identity">
+      <div class="identity-main">
+        <span class="detail-label">Show name</span>
+        <strong>${escapeHTML(row['Show Title'] || 'Untitled')}</strong>
+      </div>
+      <div class="identity-id">
+        <span class="detail-label">Show ID</span>
+        <code>${escapeHTML(row['Show ID'] || '—')}</code>
+      </div>
+    </div>
+    ${sections}
+    ${remainingSection}
+  `;
 
   $('detailsModal').classList.remove('hidden');
 }
