@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Writer & Show Operations Dashboard</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">POCKETFM · OPERATIONS</p>
+        <h1>Writer & Show Dashboard</h1>
+        <p class="subtitle">A focused view of show health, writer activity, and editorial priorities.</p>
+      </div>
+
+      <div class="topbar-actions">
+        <span id="dataStatus" class="data-status">Loading data.csv…</span>
+        <button id="openExport" class="button button-primary">
+          Export data
+        </button>
+      </div>
+    </header>
+
+    <main>
+      <section class="chart-grid" aria-label="Dashboard charts">
+        <article class="chart-card">
+          <div class="chart-heading">
+            <p class="eyebrow">SHOW MIX</p>
+            <h2>Shows by Classification</h2>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="overallConvictionChart"></canvas>
+          </div>
+        </article>
+
+        <article class="chart-card">
+          <div class="chart-heading">
+            <p class="eyebrow">SHOW MIX</p>
+            <h2>Shows by Category</h2>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="subjectiveConvictionChart"></canvas>
+          </div>
+        </article>
+
+        <article class="chart-card">
+          <div class="chart-heading">
+            <p class="eyebrow">SHOW MIX</p>
+            <h2>Shows by PPV Tag</h2>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="contractedChart"></canvas>
+          </div>
+        </article>
+
+        <article class="chart-card">
+          <div class="chart-heading">
+            <p class="eyebrow">PRIORITY</p>
+            <h2>Shows by Priority</h2>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="priorityChart"></canvas>
+          </div>
+        </article>
+      </section>
+
+      <section class="workspace-card filters-card">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">FILTERS</p>
+            <h2>Find shows quickly</h2>
+          </div>
+
+          <button id="clearFilters" class="button button-ghost">
+            Clear filters
+          </button>
+        </div>
+
+        <div class="filter-toolbar">
+          <label class="search-field">
+            <span>Search all data</span>
+            <input
+              id="searchInput"
+              type="search"
+              placeholder="Search by show, ID, author, writer or any field…"
+            />
+          </label>
+
+          <span id="activeFilterCount" class="active-filter-count">
+            0 filters active
+          </span>
+        </div>
+
+        <div id="primaryFilters" class="all-filters"></div>
+
+        <div class="advanced-filter-area">
+          <button
+            id="advancedFiltersToggle"
+            class="advanced-filters-toggle"
+            type="button"
+          >
+            Advanced filters
+            <span>⌄</span>
+          </button>
+
+          <div
+            id="advancedFiltersPanel"
+            class="advanced-filters-panel hidden"
+          >
+            <div class="advanced-filters-heading">
+              <span>Additional filters</span>
+              <small>Select any extra fields you need.</small>
+            </div>
+
+            <div id="advancedFilters" class="all-filters advanced-all-filters"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="workspace-card table-card">
+        <div class="section-heading table-heading">
+          <div>
+            <p class="eyebrow">SHOWS</p>
+            <h2>Operational view</h2>
+          </div>
+
+          <div class="table-tools">
+            <span id="resultCount">0 results</span>
+
+            <select id="pageSize">
+              <option value="25">25 rows</option>
+              <option value="50">50 rows</option>
+              <option value="100">100 rows</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Show</th>
+                <th class="genre-column">Genre</th>
+                <th class="ppv-column">PPV tag</th>
+                <th>Status</th>
+                <th>Activity L30D</th>
+                <th>Category</th>
+                <th>Show Length</th>
+                <th>Priority</th>
+                <th></th>
+              </tr>
+            </thead>
+
+            <tbody id="showTableBody"></tbody>
+          </table>
+
+          <div id="emptyState" class="empty-state hidden">
+            <div class="empty-icon">◌</div>
+            <h3>No shows found</h3>
+            <p>
+              Try changing your filters or add rows to
+              <code>data.csv</code>.
+            </p>
+          </div>
+        </div>
+
+        <div class="pagination">
+          <button id="previousPage" class="button button-ghost">
+            Previous
+          </button>
+
+          <span id="pageInfo">Page 1 of 1</span>
+
+          <button id="nextPage" class="button button-ghost">
+            Next
+          </button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div
+    id="exportModal"
+    class="modal hidden"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="exportTitle"
+  >
+    <div class="modal-backdrop" data-close-export></div>
+
+    <div class="modal-panel export-panel">
+      <div class="modal-header">
+        <div>
+          <p class="eyebrow">DOWNLOAD</p>
+          <h2 id="exportTitle">Export filtered data</h2>
+          <p class="modal-copy">
+            Choose the columns to include. Export uses the rows currently
+            matching your filters.
+          </p>
+        </div>
+
+        <button
+          class="icon-button"
+          data-close-export
+          aria-label="Close"
+        >
+          ×
+        </button>
+      </div>
+
+      <div class="export-actions">
+        <button id="selectAllColumns" class="button button-ghost">
+          Select all
+        </button>
+
+        <button id="clearAllColumns" class="button button-ghost">
+          Clear all
+        </button>
+
+        <span id="selectedColumnCount">
+          0 columns selected
+        </span>
+      </div>
+
+      <div id="columnSelector" class="column-selector"></div>
+
+      <div class="modal-footer">
+        <span id="exportRowCount">
+          0 rows will be exported
+        </span>
+
+        <button id="downloadCsv" class="button button-primary">
+          Download CSV
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div
+    id="detailsModal"
+    class="modal hidden"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="detailsTitle"
+  >
+    <div class="modal-backdrop" data-close-details></div>
+
+    <div class="modal-panel details-panel">
+      <div class="modal-header">
+        <div>
+          <p class="eyebrow">SHOW DETAILS</p>
+          <h2 id="detailsTitle">Show</h2>
+        </div>
+
+        <button
+          class="icon-button"
+          data-close-details
+          aria-label="Close"
+        >
+          ×
+        </button>
+      </div>
+
+      <div id="detailsContent" class="details-content"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script src="app-config.js"></script>
+  <script src="app-utils.js"></script>
+  <script src="app-filters.js"></script>
+  <script src="app-charts.js"></script>
+  <script src="app-view.js"></script>
+  <script src="app-export.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
