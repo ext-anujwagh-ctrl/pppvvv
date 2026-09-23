@@ -436,7 +436,8 @@ select:focus {
 table {
   border-collapse: collapse;
   width: 100%;
-  min-width: 1000px;
+  min-width: 0;
+  table-layout: fixed;
 }
 
 th {
@@ -445,15 +446,15 @@ th {
   text-align: left;
   text-transform: uppercase;
   letter-spacing: .08em;
-  padding: 13px 12px;
+  padding: 10px 8px;
   border-bottom: 1px solid var(--line);
   white-space: nowrap;
 }
 
 .genre-column,
 td:nth-child(2) {
-  width: 105px;
-  max-width: 105px;
+  width: 10%;
+  max-width: none;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -461,8 +462,8 @@ td:nth-child(2) {
 
 .ppv-column,
 td:nth-child(3) {
-  width: 180px;
-  max-width: 180px;
+  width: 14%;
+  max-width: none;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -474,11 +475,49 @@ td {
 }
 
 td {
-  padding: 14px 12px;
+  padding: 11px 8px;
   border-bottom: 1px solid #202631;
   font-size: 13px;
   color: #dce1ea;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+th:nth-child(1) {
+  width: 25%;
+}
+
+th:nth-child(2) {
+  width: 10%;
+}
+
+th:nth-child(3) {
+  width: 14%;
+}
+
+th:nth-child(4) {
+  width: 9%;
+}
+
+th:nth-child(5) {
+  width: 9%;
+}
+
+th:nth-child(6) {
+  width: 14%;
+}
+
+th:nth-child(7) {
+  width: 8%;
+}
+
+th:nth-child(8) {
+  width: 7%;
+}
+
+th:nth-child(9) {
+  width: 4%;
 }
 
 tbody tr:hover {
@@ -486,9 +525,10 @@ tbody tr:hover {
 }
 
 .show-name {
-  max-width: 250px;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
   font-weight: 600;
 }
 
