@@ -581,6 +581,14 @@ tbody tr:hover {
   padding: 25px;
 }
 
+.details-panel {
+  width: min(1180px, 100%);
+}
+
+.details-panel .modal-header {
+  margin-bottom: 16px;
+}
+
 .modal-header {
   display: flex;
   justify-content: space-between;
@@ -649,31 +657,44 @@ tbody tr:hover {
 .details-content {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  column-gap: 28px;
+  row-gap: 0;
 }
 
 .detail-item {
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 12px;
-  background: #0c1118;
+  display: grid;
+  grid-template-columns: minmax(145px, .38fr) 1fr;
+  align-items: start;
+  gap: 14px;
+  min-width: 0;
+  border-bottom: 1px solid #293140;
+  padding: 10px 0;
 }
 
 .detail-item.full {
   grid-column: 1 / -1;
+  display: block;
+  padding-top: 14px;
+  padding-bottom: 14px;
 }
 
 .detail-label {
   display: block;
   color: var(--muted);
-  font-size: 11px;
-  margin-bottom: 5px;
+  font-size: 12px;
+  line-height: 1.35;
 }
 
 .detail-value {
+  min-width: 0;
   white-space: pre-wrap;
-  font-size: 13px;
-  line-height: 1.45;
+  color: #edf1f7;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.detail-item.full .detail-label {
+  margin-bottom: 7px;
 }
 
 @media (max-width: 1250px) {
