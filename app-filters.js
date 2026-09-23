@@ -1,10 +1,11 @@
 /* Filter controls and filtered-row calculations */
 
 function filterMarkup(field, index) {
-  const values =
+  const values = (
     field === 'Show Length'
       ? SHOW_LENGTH_BUCKETS
-      : unique(field);
+      : unique(field)
+  ).filter(value => String(value).trim() !== '');
 
   state.filters[field] = state.filters[field] || new Set();
 
@@ -284,5 +285,4 @@ function updateActiveFilterCount() {
   $('activeFilterCount').textContent =
     `${count} filter${count === 1 ? '' : 's'} active`;
 }
-
 

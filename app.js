@@ -93,11 +93,24 @@ $('clearFilters').addEventListener(
 
 $('openExport').addEventListener(
   'click',
-  () => {
-    $('exportModal').classList.remove('hidden');
-    updateExportMeta();
-  }
+  () => openExportModal('all')
 );
+
+$('exportOperational').addEventListener(
+  'click',
+  () => openExportModal('operational')
+);
+
+function openExportModal(mode) {
+  state.exportMode = mode;
+  state.selectedColumns = mode === 'operational'
+    ? [...OPERATIONAL_VIEW_HEADERS]
+    : [...CSV_HEADERS];
+
+  setupExport();
+  $('exportModal').classList.remove('hidden');
+  updateExportMeta();
+}
 
 $('downloadCsv').addEventListener(
   'click',
@@ -107,7 +120,14 @@ $('downloadCsv').addEventListener(
 $('selectAllColumns').addEventListener(
   'click',
   () => {
-    state.selectedColumns = [...CSV_HEADERS];
+    state.selectedColumns = state.exportMode === 'operational'
+      ? [
+          ...OPERATIONAL_VIEW_HEADERS,
+          ...CSV_HEADERS.filter(
+            header => !OPERATIONAL_VIEW_HEADERS.includes(header)
+          )
+        ]
+      : [...CSV_HEADERS];
     setupExport();
   }
 );
@@ -115,7 +135,9 @@ $('selectAllColumns').addEventListener(
 $('clearAllColumns').addEventListener(
   'click',
   () => {
-    state.selectedColumns = [];
+    state.selectedColumns = state.exportMode === 'operational'
+      ? [...OPERATIONAL_VIEW_HEADERS]
+      : [];
     setupExport();
   }
 );

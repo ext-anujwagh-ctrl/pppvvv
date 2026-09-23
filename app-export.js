@@ -1,10 +1,19 @@
 /* CSV export controls and download logic */
 
 function setupExport() {
+  const pinnedColumns =
+    state.exportMode === 'operational'
+      ? OPERATIONAL_VIEW_HEADERS
+      : [];
+
   $('columnSelector').innerHTML = CSV_HEADERS
     .map(
       (header, index) => `
-        <label class="column-option">
+        <label class="column-option ${
+          pinnedColumns.includes(header)
+            ? 'column-option-pinned'
+            : ''
+        }">
           <input
             type="checkbox"
             value="${index}"
@@ -13,9 +22,19 @@ function setupExport() {
                 ? 'checked'
                 : ''
             }
+            ${
+              pinnedColumns.includes(header)
+                ? 'disabled'
+                : ''
+            }
           />
 
           <span>${escapeHTML(header)}</span>
+          ${
+            pinnedColumns.includes(header)
+              ? '<small>Operational</small>'
+              : ''
+          }
         </label>
       `
     )
@@ -25,13 +44,20 @@ function setupExport() {
     .querySelectorAll('#columnSelector input')
     .forEach(input => {
       input.addEventListener('change', () => {
-        state.selectedColumns = [
+        const selected = [
           ...document.querySelectorAll(
             '#columnSelector input:checked'
           )
         ].map(item =>
           CSV_HEADERS[Number(item.value)]
         );
+
+        state.selectedColumns = [
+          ...pinnedColumns,
+          ...selected.filter(
+            header => !pinnedColumns.includes(header)
+          )
+        ];
 
         updateExportMeta();
       });
@@ -41,6 +67,17 @@ function setupExport() {
 }
 
 function updateExportMeta() {
+  const operationalMode =
+    state.exportMode === 'operational';
+
+  $('exportTitle').textContent = operationalMode
+    ? 'Export operational view'
+    : 'Export filtered data';
+
+  $('exportCopy').textContent = operationalMode
+    ? 'Operational columns are included. Add any other columns you need, then download the rows matching your filters.'
+    : 'Choose the columns to include. Export uses the rows currently matching your filters.';
+
   $('selectedColumnCount').textContent =
     `${state.selectedColumns.length} column${
       state.selectedColumns.length === 1 ? '' : 's'
@@ -99,5 +136,4 @@ function downloadCSV() {
   link.click();
   URL.revokeObjectURL(url);
 }
-
 

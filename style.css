@@ -736,6 +736,19 @@ tbody tr:hover {
   border-color: var(--line);
 }
 
+.column-option-pinned {
+  border-color: #3a4558;
+  background: #151d29;
+}
+
+.column-option small {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
 .column-option input {
   width: auto;
   accent-color: var(--accent);

@@ -11,9 +11,8 @@
   <div class="app-shell">
     <header class="topbar">
       <div>
-        <p class="eyebrow">POCKETFM · OPERATIONS</p>
+        <p class="eyebrow">POCKETFM · GROWTH TRACKER</p>
         <h1>Writer & Show Dashboard</h1>
-        <p class="subtitle">A focused view of show health, writer activity, and editorial priorities.</p>
       </div>
 
       <div class="topbar-actions">
@@ -71,7 +70,6 @@
         <div class="section-heading">
           <div>
             <p class="eyebrow">FILTERS</p>
-            <h2>Find shows quickly</h2>
           </div>
 
           <button id="clearFilters" class="button button-ghost">
@@ -129,6 +127,10 @@
 
           <div class="table-tools">
             <span id="resultCount">0 results</span>
+
+            <button id="exportOperational" class="button button-ghost">
+              Export view
+            </button>
 
             <select id="pageSize">
               <option value="25">25 rows</option>
@@ -196,7 +198,7 @@
         <div>
           <p class="eyebrow">DOWNLOAD</p>
           <h2 id="exportTitle">Export filtered data</h2>
-          <p class="modal-copy">
+          <p id="exportCopy" class="modal-copy">
             Choose the columns to include. Export uses the rows currently
             matching your filters.
           </p>

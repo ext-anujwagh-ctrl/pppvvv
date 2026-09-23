@@ -153,6 +153,7 @@ const state = {
   page: 1,
   pageSize: 25,
   selectedColumns: [...CSV_HEADERS],
+  exportMode: 'all',
   filters: {},
   charts: {}
 };
