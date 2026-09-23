@@ -172,6 +172,10 @@ const DETAIL_GROUPS = [
       'Incentive Flag',
       'L3M Payouts',
       'Classification',
+      'Throughput (L30D)',
+      'Published Word Count',
+      'What it means?',
+      'Total Throughput (L30D)',
       'Contracted',
       'Editor',
       'CL',
@@ -294,22 +298,7 @@ function openDetails(row) {
     ...detailFields
   ].filter(field => row[field]);
 
-  const remainingSection = remainingFields.length
-    ? `
-      <section class="detail-section">
-        <div class="detail-section-heading">
-          <span class="eyebrow">Additional information</span>
-        </div>
-        <div class="detail-grid">
-          ${remainingFields
-            .map(field =>
-              detailCard(field, row[field])
-            )
-            .join('')}
-        </div>
-      </section>
-    `
-    : '';
+  const remainingSection = '';
 
   $('detailsContent').innerHTML = `
     <div class="details-identity">
@@ -328,4 +317,3 @@ function openDetails(row) {
 
   $('detailsModal').classList.remove('hidden');
 }
-

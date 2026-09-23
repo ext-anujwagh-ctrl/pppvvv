@@ -252,7 +252,7 @@ h3 {
   color: var(--accent-2);
   font-size: 15px;
   line-height: 1;
-  transform: translateY(-1px);
+  transform: translateY(-3px);
 }
 
 .advanced-filters-panel {
@@ -335,7 +335,7 @@ h3 {
   font-size: 15px;
   font-weight: 700;
   line-height: 1;
-  transform: translateY(-1px);
+  transform: translateY(-3px);
 }
 
 .multi-filter-menu {

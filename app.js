@@ -24,16 +24,14 @@ async function init() {
     state.allRows = parseCSV(text);
 
     $('dataStatus').textContent =
-      `data.csv · ${
-        state.allRows.length.toLocaleString()
-      } rows`;
+      `${state.allRows.length.toLocaleString()} shows`;
 
     setupAllFilters();
     setupExport();
     applyFilters();
   } catch (error) {
     $('dataStatus').textContent =
-      'Could not load data.csv';
+      'Could not load show data';
 
     console.error(error);
 
