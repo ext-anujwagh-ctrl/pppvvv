@@ -150,7 +150,11 @@ h3 {
 }
 
 .chart-heading {
-  min-height: 43px;
+  min-height: 54px;
+}
+
+.chart-heading .eyebrow {
+  margin-bottom: 4px;
 }
 
 .chart-heading h2 {
@@ -311,11 +315,15 @@ h3 {
 }
 
 .multi-filter-toggle b {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex: none;
   color: var(--accent);
   font-size: 15px;
   font-weight: 700;
-  line-height: 10px;
+  line-height: 1;
+  transform: translateY(-1px);
 }
 
 .multi-filter-menu {
