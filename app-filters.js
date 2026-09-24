@@ -234,6 +234,11 @@ function updateFilterButton(card, selected) {
     '.multi-filter-toggle b'
   );
 
+  button.classList.toggle(
+    'filter-selection-count',
+    selected.size > 0
+  );
+
   button.textContent = selected.size
     ? `${selected.size} selected`
     : '⌄';
@@ -285,4 +290,3 @@ function updateActiveFilterCount() {
   $('activeFilterCount').textContent =
     `${count} filter${count === 1 ? '' : 's'} active`;
 }
-

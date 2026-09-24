@@ -1,3 +1,48 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <circle cx="32" cy="32" r="27" fill="#f7c55b"/>
+  <defs>
+    <filter id="glow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <radialGradient id="core" cx="35%" cy="30%" r="75%">
+      <stop offset="0" stop-color="#fff6c7" />
+      <stop offset=".42" stop-color="#f7c55b" />
+      <stop offset="1" stop-color="#ff4d5d" />
+    </radialGradient>
+  </defs>
+
+  <circle cx="32" cy="32" r="22" fill="#ff4d5d" opacity=".45" filter="url(#glow)">
+    <animate attributeName="r" values="20;27;20" dur="1.4s" repeatCount="indefinite" />
+    <animate attributeName="opacity" values=".12;.78;.12" dur="1.4s" repeatCount="indefinite" />
+  </circle>
+
+  <circle cx="32" cy="32" r="20" fill="url(#core)" filter="url(#glow)">
+    <animate attributeName="r" values="19;21;19" dur="1.4s" repeatCount="indefinite" />
+    <animate attributeName="opacity" values=".72;1;.72" dur="1.4s" repeatCount="indefinite" />
+  </circle>
+
+  <g>
+    <animateTransform
+      attributeName="transform"
+      type="rotate"
+      from="0 32 32"
+      to="360 32 32"
+      dur="2.8s"
+      repeatCount="indefinite"
+    />
+    <path
+      d="M32 14l3.8 14.2L50 32l-14.2 3.8L32 50l-3.8-14.2L14 32l14.2-3.8L32 14z"
+      fill="#fff8dc"
+      opacity=".9"
+    >
+      <animate attributeName="opacity" values=".25;1;.25" dur="1.4s" repeatCount="indefinite" />
+    </path>
+    <circle cx="32" cy="8" r="2.2" fill="#fff8dc" opacity=".9">
+      <animate attributeName="opacity" values=".2;1;.2" dur="1.4s" repeatCount="indefinite" />
+    </circle>
+  </g>
 </svg>

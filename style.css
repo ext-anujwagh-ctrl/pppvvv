@@ -338,6 +338,12 @@ h3 {
   transform: translateY(-3px);
 }
 
+.multi-filter-toggle b.filter-selection-count {
+  font-size: 9px;
+  font-weight: 600;
+  transform: translateY(-1px);
+}
+
 .multi-filter-menu {
   position: absolute;
   z-index: 3;
