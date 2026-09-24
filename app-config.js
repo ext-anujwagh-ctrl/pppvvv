@@ -151,7 +151,7 @@ const state = {
   allRows: [],
   filteredRows: [],
   page: 1,
-  pageSize: 25,
+  pageSize: 10,
   selectedColumns: [...CSV_HEADERS],
   exportMode: 'all',
   filters: {},

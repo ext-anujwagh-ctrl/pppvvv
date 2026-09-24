@@ -230,6 +230,11 @@ function setupAllFilters() {
 }
 
 function updateFilterButton(card, selected) {
+  card.classList.toggle(
+    'filter-has-selection',
+    selected.size > 0
+  );
+
   const button = card.querySelector(
     '.multi-filter-toggle b'
   );

@@ -199,6 +199,39 @@ td { padding: 9px 7px; font-size: 11px; }
 .detail-label { font-size: 10px; }
 .detail-value { margin-top: 4px; font-size: 11px; }
 
+/* Reduce unused whitespace in the working areas */
+.filters-card { padding-top: 12px; padding-bottom: 10px; }
+.filters-card .section-heading { margin-bottom: 8px; }
+.filters-card .filter-toolbar { margin-bottom: 8px; }
+.filters-card .advanced-filter-area { margin-top: 7px; }
+.filters-card .advanced-filters-toggle { min-height: 28px; }
+.table-card { padding-top: 12px; }
+.table-card .section-heading { margin-bottom: 7px; }
+.chart-grid { margin-bottom: 9px; }
+.chart-card { padding-top: 9px; padding-bottom: 7px; }
+.workspace-card { margin-bottom: 9px; }
+
+/* Give Category more room in the operational table */
+.table-card th:nth-child(1), .table-card td:nth-child(1) { width: 20%; }
+.table-card th:nth-child(2), .table-card td:nth-child(2) { width: 9%; }
+.table-card th:nth-child(3), .table-card td:nth-child(3) { width: 10%; }
+.table-card th:nth-child(4), .table-card td:nth-child(4) { width: 8%; }
+.table-card th:nth-child(5), .table-card td:nth-child(5) { width: 8%; }
+.table-card th:nth-child(6), .table-card td:nth-child(6) { width: 20%; }
+.table-card th:nth-child(7), .table-card td:nth-child(7) { width: 8%; }
+.table-card th:nth-child(8), .table-card td:nth-child(8) { width: 8%; }
+.table-card th:nth-child(9), .table-card td:nth-child(9) { width: 4%; }
+
+/* Active filters use the same light-blue corporate accent as the reference */
+.multi-filter.filter-has-selection .multi-filter-toggle {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px rgba(85, 197, 214, .16);
+  color: var(--text);
+  background: #202c3e;
+}
+.multi-filter.filter-has-selection .multi-filter-toggle span { color: #eef8fb; }
+.multi-filter.filter-has-selection .multi-filter-toggle b { color: var(--accent); }
+
 /* Corporate analytics theme */
 :root {
   --bg: #0b111a;
