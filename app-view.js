@@ -3,6 +3,8 @@
 function render() {
   const rows = state.filteredRows;
 
+  renderOperationalTableHead();
+
   updateCharts();
 
   $('resultCount').textContent =
@@ -32,55 +34,18 @@ function render() {
   );
 
   $('showTableBody').innerHTML = pageRows
-    .map(
-      (row, index) => `
-        <tr>
-          <td>
-            <div
-              class="show-name"
-              title="${escapeHTML(row['Show Title'])}"
-            >
-              ${escapeHTML(
-                row['Show Title'] || 'Untitled'
-              )}
-            </div>
-
-            <div class="show-id">
-              ${escapeHTML(row['Show ID'])}
-            </div>
-          </td>
-
-          <td>${escapeHTML(row.Genre)}</td>
-          <td>${tag(row['PPV Tag'])}</td>
-          <td>${statusTag(row['Active/Inactive'])}</td>
-
-          <td>
-            ${escapeHTML(
-              row['Activity Days (L30D)'] || '—'
-            )}
-          </td>
-
-          <td>${escapeHTML(row.Category || '—')}</td>
-
-          <td>
-            ${escapeHTML(
-              row['Show Length'] || '—'
-            )}
-          </td>
-
-          <td>${priorityTag(row.Priority)}</td>
-
-          <td>
-            <button
-              class="details-button"
-              data-row-index="${start + index}"
-            >
-              View
-            </button>
-          </td>
-        </tr>
-      `
-    )
+    .map((row, index) => `
+      <tr>
+        ${state.operationalColumns
+          .map(field => `<td>${operationalCell(field, row)}</td>`)
+          .join('')}
+        <td>
+          <button class="details-button" data-row-index="${start + index}">
+            View
+          </button>
+        </td>
+      </tr>
+    `)
     .join('');
 
   $('emptyState').classList.toggle(
@@ -97,6 +62,80 @@ function render() {
         );
       });
     });
+}
+
+function renderOperationalTableHead() {
+  $('operationalTableHead').innerHTML = `
+    <tr>
+      ${state.operationalColumns
+        .map(field => `<th title="${escapeHTML(field)}">${escapeHTML(tableHeaderLabel(field))}</th>`)
+        .join('')}
+      <th aria-label="Actions"></th>
+    </tr>
+  `;
+}
+
+function tableHeaderLabel(field) {
+  const labels = {
+    'Show Title': 'Show',
+    'PPV Tag': 'PPV tag',
+    'Active/Inactive': 'Status',
+    'Activity Days (L30D)': 'L30 Actv',
+    'Show Length': 'Length'
+  };
+
+  return labels[field] || field;
+}
+
+function operationalCell(field, row) {
+  if (field === 'Show Title') {
+    return `
+      <div class="show-name" title="${escapeHTML(row[field])}">
+        ${escapeHTML(row[field] || 'Untitled')}
+      </div>
+      <div class="show-id">${escapeHTML(row['Show ID'])}</div>
+    `;
+  }
+
+  if (field === 'PPV Tag') return tag(row[field]);
+  if (field === 'Active/Inactive') return statusTag(row[field]);
+  if (field === 'Priority') return priorityTag(row[field]);
+
+  return escapeHTML(row[field] || '—');
+}
+
+function setupOperationalColumns() {
+  const container = $('operationalColumnSelector');
+  if (!container) return;
+
+  container.innerHTML = CSV_HEADERS.map(field => `
+    <label class="column-option ${state.operationalColumns.includes(field) ? 'column-option-pinned' : ''}">
+      <input type="checkbox" data-operational-column="${escapeHTML(field)}" ${state.operationalColumns.includes(field) ? 'checked' : ''} />
+      <span>${escapeHTML(tableHeaderLabel(field))}</span>
+    </label>
+  `).join('');
+
+  container.querySelectorAll('[data-operational-column]').forEach(input => {
+    input.addEventListener('change', event => {
+      const field = event.target.dataset.operationalColumn;
+      const next = new Set(state.operationalColumns);
+
+      if (event.target.checked) next.add(field);
+      else next.delete(field);
+
+      if (!next.size) {
+        event.target.checked = true;
+        return;
+      }
+
+      state.operationalColumns = CSV_HEADERS.filter(column => next.has(column));
+      setupOperationalColumns();
+      render();
+    });
+  });
+
+  $('operationalColumnCount').textContent =
+    `${state.operationalColumns.length} columns selected`;
 }
 
 function escapeHTML(value) {

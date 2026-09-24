@@ -128,6 +128,10 @@
           <div class="table-tools">
             <span id="resultCount">0 results</span>
 
+            <button id="openOperationalColumns" class="button button-ghost">
+              Columns
+            </button>
+
             <button id="exportOperational" class="button button-ghost">
               Export view
             </button>
@@ -141,20 +145,8 @@
         </div>
 
         <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Show</th>
-                <th class="genre-column">Genre</th>
-                <th class="ppv-column">PPV tag</th>
-                <th>Status</th>
-                <th>L30 Actv</th>
-                <th class="category-column">Category</th>
-                <th>Length</th>
-                <th>Priority</th>
-                <th></th>
-              </tr>
-            </thead>
+          <table class="operational-table">
+            <thead id="operationalTableHead"></thead>
 
             <tbody id="showTableBody"></tbody>
           </table>
@@ -182,6 +174,40 @@
         </div>
       </section>
     </main>
+  </div>
+
+  <div
+    id="columnsModal"
+    class="modal hidden"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="columnsTitle"
+  >
+    <div class="modal-backdrop" data-close-columns></div>
+
+    <div class="modal-panel columns-panel">
+      <div class="modal-header">
+        <div>
+          <p class="eyebrow">OPERATIONAL VIEW</p>
+          <h2 id="columnsTitle">Choose visible columns</h2>
+          <p class="modal-copy">Select the fields you want to see in the operational table.</p>
+        </div>
+
+        <button class="icon-button" data-close-columns aria-label="Close">×</button>
+      </div>
+
+      <div class="column-picker-actions">
+        <button id="resetOperationalColumns" class="button button-ghost">Reset defaults</button>
+        <button id="selectOperationalColumns" class="button button-ghost">Select all</button>
+      </div>
+
+      <div id="operationalColumnSelector" class="column-selector operational-column-selector"></div>
+
+      <div class="modal-footer">
+        <span id="operationalColumnCount">0 columns selected</span>
+        <button class="button button-primary" data-close-columns>Done</button>
+      </div>
+    </div>
   </div>
 
   <div

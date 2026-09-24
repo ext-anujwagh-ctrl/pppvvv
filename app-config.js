@@ -152,6 +152,7 @@ const state = {
   filteredRows: [],
   page: 1,
   pageSize: 10,
+  operationalColumns: [...OPERATIONAL_VIEW_HEADERS],
   selectedColumns: [...CSV_HEADERS],
   exportMode: 'all',
   filters: {},

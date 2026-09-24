@@ -28,6 +28,7 @@ async function init() {
 
     setupAllFilters();
     setupExport();
+    setupOperationalColumns();
     applyFilters();
   } catch (error) {
     $('dataStatus').textContent =
@@ -37,6 +38,7 @@ async function init() {
 
     setupAllFilters();
     setupExport();
+    setupOperationalColumns();
     applyFilters();
   }
 }
@@ -101,6 +103,32 @@ $('exportOperational').addEventListener(
   () => openExportModal('operational')
 );
 
+$('openOperationalColumns').addEventListener(
+  'click',
+  () => {
+    setupOperationalColumns();
+    $('columnsModal').classList.remove('hidden');
+  }
+);
+
+$('resetOperationalColumns').addEventListener(
+  'click',
+  () => {
+    state.operationalColumns = [...OPERATIONAL_VIEW_HEADERS];
+    setupOperationalColumns();
+    render();
+  }
+);
+
+$('selectOperationalColumns').addEventListener(
+  'click',
+  () => {
+    state.operationalColumns = [...CSV_HEADERS];
+    setupOperationalColumns();
+    render();
+  }
+);
+
 function openExportModal(mode) {
   state.exportMode = mode;
   state.selectedColumns = mode === 'operational'
@@ -144,7 +172,7 @@ $('clearAllColumns').addEventListener(
 
 document
   .querySelectorAll(
-    '[data-close-export],[data-close-details]'
+    '[data-close-export],[data-close-details],[data-close-columns]'
   )
   .forEach(element => {
     element.addEventListener('click', closeModals);

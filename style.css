@@ -221,6 +221,11 @@ td { padding: 9px 7px; font-size: 11px; }
 .table-card th:nth-child(7), .table-card td:nth-child(7) { width: 8%; }
 .table-card th:nth-child(8), .table-card td:nth-child(8) { width: 8%; }
 .table-card th:nth-child(9), .table-card td:nth-child(9) { width: 4%; }
+.operational-table th, .operational-table td { width: auto !important; }
+.operational-table th:last-child, .operational-table td:last-child { width: 58px; }
+.columns-panel { width: min(760px, 100%); }
+.column-picker-actions { display: flex; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid var(--line); margin-bottom: 12px; }
+.operational-column-selector { grid-template-columns: repeat(3, minmax(0, 1fr)); max-height: 420px; }
 
 /* Active filters use the same light-blue corporate accent as the reference */
 .multi-filter.filter-has-selection .multi-filter-toggle {
