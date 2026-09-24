@@ -226,6 +226,15 @@ td { padding: 9px 7px; font-size: 11px; }
 .operational-table .column-priority { width: 6% !important; }
 .operational-table .column-show-length { width: 7% !important; }
 .operational-table .column-activity-days-l30d { width: 7% !important; }
+.operational-table .column-show-title { width: 22% !important; white-space: nowrap; }
+.operational-table .column-genre { width: 11% !important; white-space: normal; line-height: 1.35; }
+.operational-table .column-ppv-tag { width: 11% !important; }
+.operational-table .column-active-inactive { width: 10% !important; }
+.operational-table .column-category { width: 22% !important; }
+.operational-table .column-show-length { width: 8% !important; }
+.operational-table .column-activity-days-l30d { width: 7% !important; }
+.operational-table .column-priority { width: 5% !important; }
+.operational-table th:last-child, .operational-table td:last-child { width: 4% !important; white-space: nowrap; }
 .filter-heading-actions { display: flex; align-items: center; gap: 9px; }
 .filter-heading-actions .active-filter-count { padding-bottom: 0; }
 .operational-search-row { margin: 0 0 10px; }
