@@ -37,7 +37,7 @@ function render() {
     .map((row, index) => `
       <tr>
         ${state.operationalColumns
-          .map(field => `<td>${operationalCell(field, row)}</td>`)
+          .map(field => `<td class="${tableColumnClass(field)}">${operationalCell(field, row)}</td>`)
           .join('')}
         <td>
           <button class="details-button" data-row-index="${start + index}">
@@ -68,7 +68,7 @@ function renderOperationalTableHead() {
   $('operationalTableHead').innerHTML = `
     <tr>
       ${state.operationalColumns
-        .map(field => `<th title="${escapeHTML(field)}">${escapeHTML(tableHeaderLabel(field))}</th>`)
+        .map(field => `<th class="${tableColumnClass(field)}" title="${escapeHTML(field)}">${escapeHTML(tableHeaderLabel(field))}</th>`)
         .join('')}
       <th aria-label="Actions"></th>
     </tr>
@@ -85,6 +85,10 @@ function tableHeaderLabel(field) {
   };
 
   return labels[field] || field;
+}
+
+function tableColumnClass(field) {
+  return `column-${normalized(field).replace(/[^a-z0-9]+/g, '-')}`;
 }
 
 function operationalCell(field, row) {
