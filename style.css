@@ -226,6 +226,10 @@ td { padding: 9px 7px; font-size: 11px; }
 .operational-table .column-priority { width: 6% !important; }
 .operational-table .column-show-length { width: 7% !important; }
 .operational-table .column-activity-days-l30d { width: 7% !important; }
+.filter-heading-actions { display: flex; align-items: center; gap: 9px; }
+.filter-heading-actions .active-filter-count { padding-bottom: 0; }
+.operational-search-row { margin: 0 0 10px; }
+.operational-search-row .search-field { width: min(520px, 100%); }
 .columns-panel { width: min(760px, 100%); }
 .column-picker-actions { display: flex; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid var(--line); margin-bottom: 12px; }
 .operational-column-selector { grid-template-columns: repeat(3, minmax(0, 1fr)); max-height: 420px; }

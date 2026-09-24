@@ -72,24 +72,10 @@
             <p class="eyebrow">FILTERS</p>
           </div>
 
-          <button id="clearFilters" class="button button-ghost">
-            Clear filters
-          </button>
-        </div>
-
-        <div class="filter-toolbar">
-          <label class="search-field">
-            <span>Search all data</span>
-            <input
-              id="searchInput"
-              type="search"
-              placeholder="Search by show, ID, author, writer or any field…"
-            />
-          </label>
-
-          <span id="activeFilterCount" class="active-filter-count">
-            0 filters active
-          </span>
+          <div class="filter-heading-actions">
+            <span id="activeFilterCount" class="active-filter-count">0 filters active</span>
+            <button id="clearFilters" class="button button-ghost">Clear filters</button>
+          </div>
         </div>
 
         <div id="primaryFilters" class="all-filters"></div>
@@ -142,6 +128,17 @@
               <option value="100">100 rows</option>
             </select>
           </div>
+        </div>
+
+        <div class="operational-search-row">
+          <label class="search-field">
+            <span>Search all data</span>
+            <input
+              id="searchInput"
+              type="search"
+              placeholder="Search by show, ID, author, writer or any field…"
+            />
+          </label>
         </div>
 
         <div class="table-wrap">
