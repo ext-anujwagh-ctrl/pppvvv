@@ -289,9 +289,7 @@ function detailCard(header, value) {
       <span class="detail-label">
         ${escapeHTML(header)}
       </span>
-      <div class="detail-value">
-        ${escapeHTML(cleanDetailValue(value))}
-      </div>
+      <div class="detail-value">${escapeHTML(cleanDetailValue(value))}</div>
     </div>
   `;
 }
@@ -405,14 +403,19 @@ const RETENTION_VALUE_LABELS_PLUGIN = {
   id: 'retentionValueLabels',
 
   afterDatasetsDraw(chart) {
-    const targetHours = new Set([10, 20, 50, 100]);
+    const targetHours = new Set([5, 10, 20, 30, 40]);
     const labels = chart.data.labels || [];
 
     const context = chart.ctx;
+    const chartArea = chart.chartArea;
+    const boxHeight = 20;
+    const boxGap = 6;
+    const laneHeight = boxHeight + boxGap;
+    const boxPadding = 7;
+
+    if (!chartArea) return;
+
     context.save();
-    context.font = '600 10px Inter, sans-serif';
-    context.textAlign = 'center';
-    context.textBaseline = 'bottom';
 
     chart.data.datasets.slice(0, 2).forEach((dataset, datasetIndex) => {
       const meta = chart.getDatasetMeta(datasetIndex);
@@ -434,11 +437,41 @@ const RETENTION_VALUE_LABELS_PLUGIN = {
           ? `Actual - ${value.toFixed(1)}%`
           : `BM - ${value.toFixed(1)}%`;
 
-        context.fillText(
-          valueLabel,
-          point.x,
-          point.y + (datasetIndex === 0 ? -9 : 16)
+        context.font = '600 10px Inter, sans-serif';
+        const boxWidth = context.measureText(valueLabel).width + boxPadding * 2;
+        const boxX = Math.max(
+          chartArea.left,
+          Math.min(point.x - boxWidth / 2, chartArea.right - boxWidth)
         );
+        const boxY = chartArea.top + datasetIndex * laneHeight + 4;
+        const connectorX = Math.max(
+          boxX + 8,
+          Math.min(point.x, boxX + boxWidth - 8)
+        );
+        const borderColor = datasetIndex === 0
+          ? '#8ee6a8'
+          : '#f2f5f8';
+
+        context.strokeStyle = borderColor;
+        context.lineWidth = 1;
+        context.beginPath();
+        context.moveTo(point.x, point.y);
+        context.lineTo(connectorX, boxY + boxHeight);
+        context.stroke();
+
+        context.fillStyle = 'rgba(18, 26, 38, .96)';
+        context.strokeStyle = borderColor;
+        context.beginPath();
+        context.roundRect(boxX, boxY, boxWidth, boxHeight, 4);
+        context.fill();
+        context.stroke();
+
+        context.fillStyle = datasetIndex === 0
+          ? '#b8f5c8'
+          : '#f2f5f8';
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        context.fillText(valueLabel, boxX + boxWidth / 2, boxY + boxHeight / 2 + 1);
       });
     });
 
@@ -448,34 +481,23 @@ const RETENTION_VALUE_LABELS_PLUGIN = {
 
 function retentionControlMarkup() {
   return `
-    <div class="retention-selector-grid">
+    <div class="retention-pill-layout">
       ${RETENTION_VIEW_SECTIONS.map(section => `
-        <div class="retention-selector-section">
+        <div class="retention-pill-section">
           <div class="retention-selector-title">${escapeHTML(section.label)}</div>
-          <div class="retention-selector-table">
-            <div class="retention-selector-row retention-selector-header">
-              <span>Locale / Gender</span>
-              <span>Overall</span>
-              <span>Male</span>
-              <span>Female</span>
-            </div>
-            ${section.rows.map(row => `
-              <div class="retention-selector-row">
-                <span class="retention-selector-locale">${escapeHTML(row.label)}</span>
-                ${row.options.map(option => option.disabled
-                  ? '<button class="retention-control-option" type="button" disabled>â€”</button>'
-                  : `
-                    <button
-                      class="retention-control-option ${state.retentionView === option.sheet ? 'active' : ''}"
-                      type="button"
-                      data-retention-sheet="${escapeHTML(option.sheet)}"
-                    >
-                      ${escapeHTML(option.label)}
-                    </button>
-                  `
-                ).join('')}
-              </div>
-            `).join('')}
+          <div class="retention-pill-group">
+            ${section.rows.flatMap(row => row.options.map(option => option.disabled
+              ? ''
+              : `
+                <button
+                  class="retention-control-option ${state.retentionView === option.sheet ? 'active' : ''}"
+                  type="button"
+                  data-retention-sheet="${escapeHTML(option.sheet)}"
+                >
+                  ${escapeHTML(row.label === 'US' ? 'US' : option.label)}
+                </button>
+              `
+            )).join('')}
           </div>
         </div>
       `).join('')}
@@ -590,6 +612,11 @@ function renderRetentionChart(showRow) {
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      layout: {
+        padding: {
+          top: 58
+        }
+      },
       interaction: {
         intersect: false,
         mode: 'index'
