@@ -403,7 +403,7 @@ const RETENTION_VALUE_LABELS_PLUGIN = {
   id: 'retentionValueLabels',
 
   afterDatasetsDraw(chart) {
-    const targetHours = new Set([5, 10, 20, 30, 40]);
+    const targetHours = new Set([5, 10, 30, 50, 100, 120, 150]);
     const labels = chart.data.labels || [];
 
     const context = chart.ctx;
@@ -420,6 +420,8 @@ const RETENTION_VALUE_LABELS_PLUGIN = {
     chart.data.datasets.slice(0, 2).forEach((dataset, datasetIndex) => {
       const meta = chart.getDatasetMeta(datasetIndex);
       if (!dataset || !meta) return;
+
+      let annotationIndex = 0;
 
       meta.data.forEach((point, index) => {
         const hourMatch = String(labels[index]).match(/^H(\d+)$/);
@@ -443,7 +445,9 @@ const RETENTION_VALUE_LABELS_PLUGIN = {
           chartArea.left,
           Math.min(point.x - boxWidth / 2, chartArea.right - boxWidth)
         );
-        const boxY = chartArea.top + datasetIndex * laneHeight + 4;
+        const lane = datasetIndex * 2 + (annotationIndex % 2);
+        const boxY = chartArea.top + lane * laneHeight + 4;
+        annotationIndex += 1;
         const connectorX = Math.max(
           boxX + 8,
           Math.min(point.x, boxX + boxWidth - 8)
@@ -485,19 +489,41 @@ function retentionControlMarkup() {
       ${RETENTION_VIEW_SECTIONS.map(section => `
         <div class="retention-pill-section">
           <div class="retention-selector-title">${escapeHTML(section.label)}</div>
-          <div class="retention-pill-group">
-            ${section.rows.flatMap(row => row.options.map(option => option.disabled
-              ? ''
-              : `
-                <button
-                  class="retention-control-option ${state.retentionView === option.sheet ? 'active' : ''}"
-                  type="button"
-                  data-retention-sheet="${escapeHTML(option.sheet)}"
-                >
-                  ${escapeHTML(row.label === 'US' ? 'US' : option.label)}
-                </button>
-              `
-            )).join('')}
+          <div class="retention-pill-selectors">
+            <div class="retention-pill-selector">
+              <span>Locale</span>
+              <div class="retention-pill-group">
+                ${[section.rows[0]?.options[0], section.rows[1]?.options[0]].map((option, index) => option && !option.disabled
+                  ? `
+                    <button
+                      class="retention-control-option ${state.retentionView === option.sheet ? 'active' : ''}"
+                      type="button"
+                      data-retention-sheet="${escapeHTML(option.sheet)}"
+                    >
+                      ${index === 0 ? 'Overall' : 'US'}
+                    </button>
+                  `
+                  : ''
+                ).join('')}
+              </div>
+            </div>
+            <div class="retention-pill-selector">
+              <span>Gender</span>
+              <div class="retention-pill-group">
+                ${section.rows[0]?.options.slice(1).map(option => option.disabled
+                  ? ''
+                  : `
+                    <button
+                      class="retention-control-option ${state.retentionView === option.sheet ? 'active' : ''}"
+                      type="button"
+                      data-retention-sheet="${escapeHTML(option.sheet)}"
+                    >
+                      ${escapeHTML(option.label)}
+                    </button>
+                  `
+                ).join('') || ''}
+              </div>
+            </div>
           </div>
         </div>
       `).join('')}
@@ -614,7 +640,7 @@ function renderRetentionChart(showRow) {
       maintainAspectRatio: false,
       layout: {
         padding: {
-          top: 58
+          top: 112
         }
       },
       interaction: {
