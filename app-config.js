@@ -189,6 +189,17 @@ const RETENTION_VIEW_SECTIONS = [
         ]
       }
     ]
+  },
+  {
+    label: 'PPV Benchmarks',
+    rows: [
+      {
+        label: 'View',
+        options: [
+          { label: 'PPV Benchmarks', sheet: 'ppv benchmarks' }
+        ]
+      }
+    ]
   }
 ];
 

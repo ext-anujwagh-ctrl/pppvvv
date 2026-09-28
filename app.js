@@ -41,6 +41,19 @@ async function init() {
       console.warn('Could not load data1.xlsx', retentionError);
     }
 
+    try {
+      const ppvResponse = await fetch('ppv-benchmarks.csv', {
+        cache: 'no-store'
+      });
+
+      if (ppvResponse.ok) {
+        state.retentionDatasets['ppv benchmarks'] =
+          parsePPVBenchmarkCSV(await ppvResponse.text());
+      }
+    } catch (ppvError) {
+      console.warn('Could not load ppv-benchmarks.csv', ppvError);
+    }
+
     $('dataStatus').textContent =
       `${state.allRows.length.toLocaleString()} shows`;
 

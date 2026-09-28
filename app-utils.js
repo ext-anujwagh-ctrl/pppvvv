@@ -118,6 +118,96 @@ function parseRetentionWorkbook(workbook) {
   return datasets;
 }
 
+function parsePPVBenchmarkCSV(text) {
+  if (typeof XLSX === 'undefined') {
+    throw new Error('SheetJS could not be loaded');
+  }
+
+  const workbook = XLSX.read(text, { type: 'string' });
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const matrix = XLSX.utils.sheet_to_json(sheet, {
+    header: 1,
+    defval: ''
+  });
+  const headerIndex = matrix.findIndex(row =>
+    row.some(cell => String(cell).trim().toLowerCase() === 'show_id')
+  );
+
+  if (headerIndex < 0) {
+    throw new Error('PPV benchmark CSV headers not found');
+  }
+
+  const maxHourRow = matrix[0] || [];
+  const headers = matrix[headerIndex].map(cell =>
+    String(cell || '').trim()
+  );
+  const retentionColumns = headers
+    .map((header, index) => {
+      const match = header.match(/^H(\d+)_Retention$/i);
+      return match ? { index, hour: Number(match[1]) } : null;
+    })
+    .filter(Boolean);
+
+  const canonicalRow = (values, cohortMaxHour) => {
+    const row = {};
+
+    retentionColumns
+      .filter(column => Number(maxHourRow[column.index]) === cohortMaxHour)
+      .forEach(column => {
+        row[`H${column.hour} Ret% Nth TD`] = values[column.index] ?? '';
+      });
+
+    return row;
+  };
+
+  const benchmarkRows = {};
+
+  matrix.slice(0, headerIndex).forEach(values => {
+    const genre = String(values[2] || '').trim();
+    if (!genre) return;
+
+    const benchmarkByCohort = {};
+    [...new Set(
+      retentionColumns.map(column => Number(maxHourRow[column.index]))
+    )].forEach(cohortMaxHour => {
+      benchmarkByCohort[`${normalized(genre)}|${cohortMaxHour}`] = {
+        Genre: genre,
+        ...canonicalRow(values, cohortMaxHour)
+      };
+    });
+
+    Object.assign(benchmarkRows, benchmarkByCohort);
+  });
+
+  const rows = matrix
+    .slice(headerIndex + 1)
+    .map(values => {
+      const populatedRetentionColumns = retentionColumns.filter(column =>
+        String(values[column.index] ?? '').trim() !== ''
+      );
+      const lastRetentionColumn = populatedRetentionColumns.at(-1);
+      const maxHour = lastRetentionColumn
+        ? Number(maxHourRow[lastRetentionColumn.index])
+        : null;
+
+      return {
+        'Show ID': String(values[0] || '').trim(),
+        'Show Title': String(values[1] || '').trim(),
+        Genre: String(values[2] || '').trim(),
+        'PPV Max Hour': maxHour,
+        ...(maxHour ? canonicalRow(values, maxHour) : {})
+      };
+    })
+    .filter(row => row['Show ID']);
+
+  return {
+    rows,
+    benchmarks: {},
+    cohortBenchmarks: benchmarkRows,
+    isPPVBenchmark: true
+  };
+}
+
 function unique(field) {
   return [
     ...new Set(

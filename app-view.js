@@ -489,6 +489,24 @@ function retentionControlMarkup() {
       ${RETENTION_VIEW_SECTIONS.map(section => `
         <div class="retention-pill-section">
           <div class="retention-selector-title">${escapeHTML(section.label)}</div>
+          ${section.rows.length === 1
+            ? `
+              <div class="retention-pill-selectors">
+                <div class="retention-pill-selector">
+                  <span>View</span>
+                  <div class="retention-pill-group">
+                    <button
+                      class="retention-control-option ${state.retentionView === section.rows[0].options[0].sheet ? 'active' : ''}"
+                      type="button"
+                      data-retention-sheet="${escapeHTML(section.rows[0].options[0].sheet)}"
+                    >
+                      PPV Benchmarks
+                    </button>
+                  </div>
+                </div>
+              </div>
+            `
+            : `
           <div class="retention-pill-selectors">
             <div class="retention-pill-selector">
               <span>Locale</span>
@@ -525,6 +543,7 @@ function retentionControlMarkup() {
               </div>
             </div>
           </div>
+            `}
         </div>
       `).join('')}
     </div>
@@ -588,7 +607,11 @@ function renderRetentionChart(showRow) {
   }
 
   const genreKey = normalized(showRow['Genre']);
-  const benchmarkRow = dataset.benchmarks[genreKey];
+  const benchmarkRow = dataset.isPPVBenchmark
+    ? dataset.cohortBenchmarks[
+        `${genreKey}|${retentionRow['PPV Max Hour']}`
+      ]
+    : dataset.benchmarks[genreKey];
   const benchmarkPoints = benchmarkRow
     ? retentionFieldEntries(benchmarkRow)
     : [];
@@ -596,12 +619,16 @@ function renderRetentionChart(showRow) {
     benchmarkPoints.map(point => [point.hour, point.value])
   );
 
-  const benchmarkLabel = showRow['Genre']
-    ? `${showRow['Genre']} benchmark`
+  const benchmarkLabel = dataset.isPPVBenchmark
+    ? `PPV benchmark (H${retentionRow['PPV Max Hour']})`
+    : showRow['Genre']
+      ? `${showRow['Genre']} benchmark`
     : 'Genre benchmark';
 
   const datasets = [{
-    label: 'Normalised retention',
+    label: dataset.isPPVBenchmark
+      ? 'PPV retention'
+      : 'Normalised retention',
     data: points.map(point => point.value),
     borderColor: '#8ee6a8',
     backgroundColor: 'rgba(142, 230, 168, .14)',
@@ -780,7 +807,11 @@ function renderComparison() {
   const differenceText = `${Math.abs(averageDifference).toFixed(1)} percentage points ${averageDifference >= 0 ? 'higher' : 'lower'}`;
 
   const firstBelowBenchmark = (row, points) => {
-    const benchmarkRow = dataset.benchmarks?.[normalized(row['Genre'])];
+    const benchmarkRow = dataset.isPPVBenchmark
+      ? dataset.cohortBenchmarks?.[
+          `${normalized(row['Genre'])}|${row['PPV Max Hour']}`
+        ]
+      : dataset.benchmarks?.[normalized(row['Genre'])];
     if (!benchmarkRow) return null;
 
     const benchmarkByHour = new Map(
