@@ -408,6 +408,16 @@ const RETENTION_VALUE_LABELS_PLUGIN = {
   afterDatasetsDraw(chart) {
     const targetHours = new Set([5, 10, 50, 100]);
     const labels = chart.data.labels || [];
+    const labelOptions = chart.options.plugins.retentionValueLabels || {};
+    const firstBelowBenchmark = labelOptions.firstBelowBenchmark;
+    const firstBelowIndex = firstBelowBenchmark
+      ? chart.data.datasets[0]?.data.findIndex((value, index) => {
+          const benchmark = chart.data.datasets[1]?.data[index];
+          return Number.isFinite(Number(value)) &&
+            Number.isFinite(Number(benchmark)) &&
+            Number(value) < Number(benchmark);
+        })
+      : -1;
 
     const context = chart.ctx;
     const chartArea = chart.chartArea;
@@ -430,7 +440,11 @@ const RETENTION_VALUE_LABELS_PLUGIN = {
         const hourMatch = String(labels[index]).match(/^H(\d+)$/);
         const value = Number(dataset.data[index]);
 
-        if (!hourMatch || !targetHours.has(Number(hourMatch[1])) || !Number.isFinite(value)) {
+        const shouldLabel = firstBelowBenchmark
+          ? index === firstBelowIndex
+          : hourMatch && targetHours.has(Number(hourMatch[1]));
+
+        if (!shouldLabel || !Number.isFinite(value)) {
           return;
         }
 
@@ -755,7 +769,9 @@ function renderRetentionChart(showRow, viewKey, canvasId, sectionId) {
         mode: 'index'
       },
       plugins: {
-        retentionValueLabels: {},
+        retentionValueLabels: {
+          firstBelowBenchmark: dataset.isPPVBenchmark
+        },
         legend: {
           display: datasets.length > 1,
           position: 'bottom',
