@@ -149,7 +149,7 @@ const SHOW_LENGTH_BUCKETS = [
 
 const RETENTION_VIEW_SECTIONS = [
   {
-    label: 'Normalised View',
+    label: 'Normalised retention',
     rows: [
       {
         label: 'Overall',
@@ -170,7 +170,7 @@ const RETENTION_VIEW_SECTIONS = [
     ]
   },
   {
-    label: 'Whale+ View',
+    label: 'Whale+ retention',
     rows: [
       {
         label: 'Overall',
@@ -216,6 +216,7 @@ const state = {
   filters: {},
   charts: {},
   retentionChart: null,
+  retentionCharts: {},
   comparerChart: null
 };
 

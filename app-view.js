@@ -35,15 +35,10 @@ function render() {
 
   $('showTableBody').innerHTML = pageRows
     .map((row, index) => `
-      <tr>
+      <tr class="show-row" data-row-index="${start + index}">
         ${state.operationalColumns
           .map(field => `<td class="${tableColumnClass(field)}">${operationalCell(field, row)}</td>`)
           .join('')}
-        <td>
-          <button class="details-button" data-row-index="${start + index}">
-            View
-          </button>
-        </td>
       </tr>
     `)
     .join('');
@@ -54,11 +49,11 @@ function render() {
   );
 
   document
-    .querySelectorAll('[data-row-index]')
-    .forEach(button => {
-      button.addEventListener('click', () => {
+    .querySelectorAll('#showTableBody tr[data-row-index]')
+    .forEach(rowElement => {
+      rowElement.addEventListener('click', () => {
         openDetails(
-          rows[Number(button.dataset.rowIndex)]
+          rows[Number(rowElement.dataset.rowIndex)]
         );
       });
     });
@@ -70,7 +65,6 @@ function renderOperationalTableHead() {
       ${state.operationalColumns
         .map(field => `<th class="${tableColumnClass(field)}" title="${escapeHTML(field)}">${escapeHTML(tableHeaderLabel(field))}</th>`)
         .join('')}
-      <th aria-label="Actions"></th>
     </tr>
   `;
 }
@@ -351,30 +345,32 @@ function openDetails(row) {
   const remainingSection = '';
 
   $('detailsContent').innerHTML = `
-    <div class="retention-action-card">
-      <button id="showRetentionChart" class="button button-primary" type="button">
-        Normalised retention
-      </button>
-    </div>
-    <section id="retentionChartSection" class="retention-chart-section hidden">
-      <div class="detail-section-heading">
-        <span class="eyebrow">RETENTION PERFORMANCE</span>
-        <strong>Normalised retention by hour</strong>
-      </div>
-      <div id="retentionControls" class="retention-controls"></div>
-      <div class="retention-chart-wrap">
-        <canvas id="retentionChart"></canvas>
-      </div>
+    <section class="retention-chart-grid">
+      <article id="retentionChartSection" class="retention-chart-section hidden">
+        <div class="detail-section-heading">
+          <span class="eyebrow">RETENTION PERFORMANCE</span>
+          <strong>Normalised retention</strong>
+        </div>
+        <div class="retention-chart-wrap">
+          <canvas id="retentionChart"></canvas>
+        </div>
+      </article>
+      <article id="ppvRetentionChartSection" class="retention-chart-section hidden">
+        <div class="detail-section-heading">
+          <span class="eyebrow">RETENTION PERFORMANCE</span>
+          <strong>PPV Benchmarks</strong>
+        </div>
+        <div class="retention-chart-wrap">
+          <canvas id="ppvRetentionChart"></canvas>
+        </div>
+      </article>
     </section>
     ${sections}
     ${remainingSection}
   `;
 
   $('detailsModal').classList.remove('hidden');
-
-  $('showRetentionChart').addEventListener('click', () => {
-    renderRetentionChart(row);
-  });
+  renderRetentionCharts(row);
 }
 
 function retentionFieldEntries(row) {
@@ -484,69 +480,68 @@ const RETENTION_VALUE_LABELS_PLUGIN = {
 };
 
 function retentionControlMarkup() {
-  return `
-    <div class="retention-pill-layout">
-      ${RETENTION_VIEW_SECTIONS.map(section => `
-        <div class="retention-pill-section">
-          <div class="retention-selector-title">${escapeHTML(section.label)}</div>
-          ${section.rows.length === 1
-            ? `
-              <div class="retention-pill-selectors">
-                <div class="retention-pill-selector">
-                  <span>View</span>
-                  <div class="retention-pill-group">
-                    <button
-                      class="retention-control-option ${state.retentionView === section.rows[0].options[0].sheet ? 'active' : ''}"
-                      type="button"
-                      data-retention-sheet="${escapeHTML(section.rows[0].options[0].sheet)}"
-                    >
-                      PPV Benchmarks
-                    </button>
-                  </div>
-                </div>
-              </div>
-            `
-            : `
-          <div class="retention-pill-selectors">
-            <div class="retention-pill-selector">
-              <span>Locale</span>
-              <div class="retention-pill-group">
-                ${[section.rows[0]?.options[0], section.rows[1]?.options[0]].map((option, index) => option && !option.disabled
-                  ? `
-                    <button
-                      class="retention-control-option ${state.retentionView === option.sheet ? 'active' : ''}"
-                      type="button"
-                      data-retention-sheet="${escapeHTML(option.sheet)}"
-                    >
-                      ${index === 0 ? 'Overall' : 'US'}
-                    </button>
-                  `
-                  : ''
-                ).join('')}
-              </div>
-            </div>
-            <div class="retention-pill-selector">
-              <span>Gender overall</span>
-              <div class="retention-pill-group">
-                ${section.rows[0]?.options.slice(1).map(option => option.disabled
-                  ? ''
-                  : `
-                    <button
-                      class="retention-control-option ${state.retentionView === option.sheet ? 'active' : ''}"
-                      type="button"
-                      data-retention-sheet="${escapeHTML(option.sheet)}"
-                    >
-                      ${escapeHTML(option.label)}
-                    </button>
-                  `
-                ).join('') || ''}
-              </div>
-            </div>
+  const normalisedSections = RETENTION_VIEW_SECTIONS.filter(section =>
+    section.label !== 'PPV Benchmarks'
+  );
+  const ppvSection = RETENTION_VIEW_SECTIONS.find(section =>
+    section.label === 'PPV Benchmarks'
+  );
+  const isPPV = state.retentionView === 'ppv benchmarks';
+
+  const renderNormalisedSection = section => `
+    <div class="retention-pill-section">
+      <div class="retention-selector-title">${escapeHTML(section.label)}</div>
+      <div class="retention-pill-selectors">
+        <div class="retention-pill-selector">
+          <span>Locale</span>
+          <div class="retention-pill-group">
+            ${[section.rows[0]?.options[0], section.rows[1]?.options[0]].map((option, index) => option && !option.disabled
+              ? `
+                <button
+                  class="retention-control-option ${state.retentionView === option.sheet ? 'active' : ''}"
+                  type="button"
+                  data-retention-sheet="${escapeHTML(option.sheet)}"
+                >
+                  ${index === 0 ? 'Overall' : 'US'}
+                </button>
+              `
+              : ''
+            ).join('')}
           </div>
-            `}
         </div>
-      `).join('')}
+        <div class="retention-pill-selector">
+          <span>Gender overall</span>
+          <div class="retention-pill-group">
+            ${section.rows[0]?.options.slice(1).map(option => option.disabled
+              ? ''
+              : `
+                <button
+                  class="retention-control-option ${state.retentionView === option.sheet ? 'active' : ''}"
+                  type="button"
+                  data-retention-sheet="${escapeHTML(option.sheet)}"
+                >
+                  ${escapeHTML(option.label)}
+                </button>
+              `
+            ).join('') || ''}
+          </div>
+        </div>
+      </div>
     </div>
+  `;
+
+  return `
+    <div class="retention-type-switcher">
+      <button class="retention-type-option ${!isPPV ? 'active' : ''}" type="button" data-retention-type="normalised">Normalised retention</button>
+      <button class="retention-type-option ${isPPV ? 'active' : ''}" type="button" data-retention-type="ppv">PPV Benchmarks</button>
+    </div>
+    ${isPPV
+      ? ''
+      : `
+        <div class="retention-pill-layout retention-normalised-controls">
+          ${normalisedSections.map(renderNormalisedSection).join('')}
+        </div>
+      `}
   `;
 }
 
@@ -565,26 +560,42 @@ function setupRetentionControls(showRow) {
         renderRetentionChart(showRow);
       });
     });
+
+  container
+    .querySelectorAll('[data-retention-type]')
+    .forEach(button => {
+      button.addEventListener('click', () => {
+        state.retentionView = button.dataset.retentionType === 'ppv'
+          ? 'ppv benchmarks'
+          : 'normalised overall';
+        setupRetentionControls(showRow);
+        renderRetentionChart(showRow);
+      });
+    });
 }
 
-function renderRetentionChart(showRow) {
-  const section = $('retentionChartSection');
-  const canvas = $('retentionChart');
+function renderRetentionCharts(showRow) {
+  renderRetentionChart(showRow, 'normalised overall', 'retentionChart', 'retentionChartSection');
+  renderRetentionChart(showRow, 'ppv benchmarks', 'ppvRetentionChart', 'ppvRetentionChartSection');
+}
+
+function renderRetentionChart(showRow, viewKey, canvasId, sectionId) {
+  const section = $(sectionId);
+  const canvas = $(canvasId);
 
   if (!section || !canvas) return;
 
-  const dataset = state.retentionDatasets[state.retentionView];
+  const dataset = state.retentionDatasets[viewKey];
   const retentionRow = dataset?.rows.find(row =>
     row['Show ID'] === showRow['Show ID']
   );
 
   section.classList.remove('hidden');
-  setupRetentionControls(showRow);
 
   if (!retentionRow) {
-    if (state.retentionChart) {
-      state.retentionChart.destroy();
-      state.retentionChart = null;
+    if (state.retentionCharts[viewKey]) {
+      state.retentionCharts[viewKey].destroy();
+      delete state.retentionCharts[viewKey];
     }
     section.classList.add('hidden');
     return;
@@ -597,8 +608,8 @@ function renderRetentionChart(showRow) {
     return;
   }
 
-  if (state.retentionChart) {
-    state.retentionChart.destroy();
+  if (state.retentionCharts[viewKey]) {
+    state.retentionCharts[viewKey].destroy();
   }
 
   if (typeof Chart === 'undefined') {
@@ -656,7 +667,7 @@ function renderRetentionChart(showRow) {
     });
   }
 
-  state.retentionChart = new Chart(canvas, {
+  state.retentionCharts[viewKey] = new Chart(canvas, {
     type: 'line',
     data: {
       labels: points.map(point => `H${point.hour}`),
