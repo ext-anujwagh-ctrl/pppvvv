@@ -263,6 +263,7 @@ td { padding: 9px 7px; font-size: 11px; }
 .table-card th:nth-child(8), .table-card td:nth-child(8) { width: 8%; }
 .table-card th:nth-child(9), .table-card td:nth-child(9) { width: 4%; }
 .operational-table th, .operational-table td { width: auto !important; }
+.operational-table th { color: #fff; font-weight: 800; }
 .operational-table th:last-child, .operational-table td:last-child { width: auto; }
 .operational-table .column-priority { width: 6% !important; }
 .operational-table .column-show-length { width: 7% !important; }
