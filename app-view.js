@@ -1078,42 +1078,6 @@ function reportValue(row, field) {
   return displayMetricValue(row[field]);
 }
 
-const REPORT_OVERVIEW_FIELDS = [
-  ['show_id', 'Show ID'],
-  ['book_id', 'Book ID'],
-  ['book_title', 'Book title'],
-  ['show_cohort', 'Show cohort'],
-  ['editor', 'Editor'],
-  ['senior_editor', 'Senior editor'],
-  ['channel_type', 'Channel type'],
-  ['book_genre', 'Genre'],
-  ['stage_label_numbered', 'Stage'],
-  ['sub_stage_label_numbered', 'Sub-stage'],
-  ['current_testing_state', 'Testing state'],
-  ['current_age_bucket', 'Age bucket'],
-  ['book_status', 'Book status'],
-  ['show_status', 'Show status'],
-  ['contract_status', 'Contract status'],
-  ['wbp_status', 'WBP status'],
-  ['wbp_sub_status', 'WBP sub-status'],
-  ['incentive_flag', 'Incentive flag'],
-  ['ppv_tag', 'PPV tag']
-];
-
-const REPORT_PERFORMANCE_FIELDS = [
-  ['published_word_count', 'Published word count'],
-  ['published_word_count_l30', 'Published words L30'],
-  ['show_live_length', 'Show live length'],
-  ['l7d_active_days', 'L7D active days'],
-  ['active_days_l30_distinct', 'Active days L30'],
-  ['editor_score', 'Editor score'],
-  ['moderation_status', 'Moderation status'],
-  ['llm_result', 'LLM result'],
-  ['llm_score', 'LLM score'],
-  ['author_other_book_l30d_active_days', 'Author other-book activity L30'],
-  ['compact_llm_geo', 'LLM geography']
-];
-
 function reportTitle(row) {
   return row.show_title || row['Show Title'] || row.book_title || row['Show Title'] || 'Show';
 }
@@ -1196,21 +1160,19 @@ function reportFieldGroups(row) {
   return groups;
 }
 
-function reportGroupMarkup(groups) {
+function reportGroupMarkup(groups, row) {
   return groups.map(group => `
     <div class="report-subheading">${escapeHTML(group.title)}</div>
     <div class="report-grid report-overview-grid">
       ${group.fields.map(([field, label]) => `
         <div class="report-item">
           <span>${escapeHTML(label)}</span>
-          <strong>${escapeHTML(reportValue(currentReportRow, field))}</strong>
+          <strong>${escapeHTML(reportValue(row, field))}</strong>
         </div>
       `).join('')}
     </div>
   `).join('');
 }
-
-let currentReportRow = null;
 
 function retentionReportFinding(label, points, benchmarkRow) {
   if (!points.length) return `${label}: no retention data available.`;
@@ -1242,19 +1204,17 @@ function renderShowReport() {
   const input = $('reportShowId');
   const status = $('reportStatus');
   const output = $('reportOutput');
-  const printButton = $('printReport');
   if (!input || !status || !output) return;
 
   const row = reportRowByInput(input.value);
   if (!row) {
     status.textContent = 'Enter a valid Show ID or show title.';
     output.classList.add('hidden');
-    printButton?.classList.add('hidden');
     return;
   }
 
   const sourceFields = Object.keys(row);
-  const fullDataFields = sourceFields.map(field => [field, field.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase())]);
+  const fieldGroups = reportFieldGroups(row);
   const missingFields = sourceFields.filter(field => !String(row[field] ?? '').trim());
   const findings = [
     `Current position: ${reportValue(row, 'stage_label_numbered')} / ${reportValue(row, 'sub_stage_label_numbered')} with testing state ${reportValue(row, 'current_testing_state')}.`,
@@ -1273,24 +1233,7 @@ function renderShowReport() {
       </div>
       <span class="report-status-tag">${escapeHTML(reportValue(row, 'show_status'))}</span>
     </div>
-    <div class="report-subheading">Overview</div>
-    <div class="report-grid report-overview-grid">
-      ${REPORT_OVERVIEW_FIELDS.map(([field, label]) => `
-        <div class="report-item">
-          <span>${escapeHTML(label)}</span>
-          <strong>${escapeHTML(reportValue(row, field))}</strong>
-        </div>
-      `).join('')}
-    </div>
-    <div class="report-subheading">Performance</div>
-    <div class="report-grid report-overview-grid">
-      ${REPORT_PERFORMANCE_FIELDS.map(([field, label]) => `
-        <div class="report-item">
-          <span>${escapeHTML(label)}</span>
-          <strong>${escapeHTML(reportValue(row, field))}</strong>
-        </div>
-      `).join('')}
-    </div>
+    ${reportGroupMarkup(fieldGroups, row)}
     <div class="report-analysis">
       <span>Findings and analysis</span>
       <ul>${findings.map(finding => `<li>${escapeHTML(finding)}</li>`).join('')}</ul>
@@ -1299,19 +1242,86 @@ function renderShowReport() {
       <span>Retention and benchmark findings</span>
       ${reportRetentionFindings(row).map(finding => `<p>${escapeHTML(finding)}</p>`).join('')}
     </div>
-    <div class="report-subheading">Complete source data</div>
-    <div class="report-grid report-full-data-grid">
-      ${fullDataFields.map(([field, label]) => `
-        <div class="report-item">
-          <span>${escapeHTML(label)}</span>
-          <strong>${escapeHTML(reportValue(row, field))}</strong>
-        </div>
-      `).join('')}
-    </div>
   `;
   output.classList.remove('hidden');
-  printButton?.classList.remove('hidden');
   status.textContent = `Report generated for ${reportTitle(row)}.`;
+}
+
+function downloadShowReport() {
+  const input = $('reportShowId');
+  const status = $('reportStatus');
+  const row = reportRowByInput(input?.value || '');
+  const PDF = window.jspdf?.jsPDF;
+
+  if (!row) {
+    if (status) status.textContent = 'Enter a valid Show ID or show title.';
+    return;
+  }
+
+  if (!PDF) {
+    if (status) status.textContent = 'PDF download is unavailable. Please reload the dashboard.';
+    return;
+  }
+
+  const doc = new PDF({ unit: 'pt', format: 'a4' });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 42;
+  let y = 48;
+
+  const ensureSpace = height => {
+    if (y + height > pageHeight - margin) {
+      doc.addPage();
+      y = margin;
+    }
+  };
+
+  const write = (text, options = {}) => {
+    const size = options.size || 9;
+    const color = options.color || [55, 65, 81];
+    const weight = options.weight || 'normal';
+    doc.setFont('helvetica', weight);
+    doc.setFontSize(size);
+    doc.setTextColor(...color);
+    const lines = doc.splitTextToSize(String(text || '-'), options.width || pageWidth - margin * 2);
+    ensureSpace(lines.length * (size + 3) + (options.gap || 0));
+    doc.text(lines, options.x || margin, y);
+    y += lines.length * (size + 3) + (options.gap || 0);
+  };
+
+  doc.setFillColor(15, 23, 42);
+  doc.rect(0, 0, pageWidth, 78, 'F');
+  write('P3 & PPV Shows Slate', { size: 10, color: [85, 197, 214], weight: 'bold', gap: 5 });
+  write(reportTitle(row), { size: 20, color: [255, 255, 255], weight: 'bold', gap: 3 });
+  write(`${reportId(row)} · ${reportValue(row, 'show_status')}`, { size: 9, color: [190, 200, 215], gap: 15 });
+
+  reportFieldGroups(row).forEach(group => {
+    ensureSpace(36);
+    write(group.title, { size: 11, color: [15, 105, 130], weight: 'bold', gap: 5 });
+    group.fields.forEach(([field, label]) => {
+      const value = reportValue(row, field);
+      const text = `${label}: ${value}`;
+      write(text, { size: 8.5, color: [55, 65, 81], gap: 2 });
+    });
+    y += 5;
+  });
+
+  ensureSpace(50);
+  write('Findings and analysis', { size: 11, color: [15, 105, 130], weight: 'bold', gap: 5 });
+  const sourceFields = Object.keys(row);
+  const findings = [
+    `Current position: ${reportValue(row, 'stage_label_numbered')} / ${reportValue(row, 'sub_stage_label_numbered')} with testing state ${reportValue(row, 'current_testing_state')}.`,
+    `Audience: ${reportValue(row, 'active_days_l30_distinct')} active days in L30, ${reportValue(row, 'published_word_count_l30')} words published in L30, and ${reportValue(row, 'show_live_length')} live length.`,
+    ...reportRetentionFindings(row),
+    `Funnel: P1 ${reportValue(row, 'P1 Pass')}, P2 ${reportValue(row, 'P2 Pass')}, and P3 ${reportValue(row, 'P3 Pass')}.`,
+    `Data quality: ${sourceFields.filter(field => !String(row[field] ?? '').trim()).length} of ${sourceFields.length} source fields are blank.`
+  ];
+  findings.forEach(finding => write(`• ${finding}`, { size: 8.5, gap: 3 }));
+
+  const filename = `${reportTitle(row).replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'show'}-report.pdf`;
+  doc.save(filename);
+  renderShowReport();
+  if (status) status.textContent = `PDF downloaded for ${reportTitle(row)}.`;
 }
 
 function comparisonChartOptions() {
