@@ -188,11 +188,11 @@ function escapeHTML(value) {
 function tag(value) {
   return value
     ? `<span class="tag">${escapeHTML(value)}</span>`
-    : '—';
+    : '-';
 }
 
 function statusTag(value) {
-  if (!value) return '—';
+  if (!value) return '-';
 
   const className = isYes(value)
     ? 'tag-green'
@@ -206,7 +206,7 @@ function statusTag(value) {
 }
 
 function priorityTag(value) {
-  if (!value) return '—';
+  if (!value) return '-';
 
   const normalizedValue = normalized(value);
 
@@ -228,4 +228,3 @@ function priorityTag(value) {
     </span>
   `;
 }
-

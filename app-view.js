@@ -105,7 +105,7 @@ function operationalCell(field, row) {
   if (field === 'Active/Inactive') return statusTag(row[field]);
   if (field === 'Priority') return priorityTag(row[field]);
 
-  return escapeHTML(row[field] || 'â€”');
+  return escapeHTML(row[field] || '-');
 }
 
 function setupOperationalColumns() {
@@ -167,11 +167,11 @@ function tag(value) {
 
   return value
     ? `<span class="tag">${escapeHTML(displayValue)}</span>`
-    : 'â€”';
+    : '-';
 }
 
 function statusTag(value) {
-  if (!value) return 'â€”';
+  if (!value) return '-';
 
   const className = isYes(value)
     ? 'tag-green'
@@ -185,7 +185,7 @@ function statusTag(value) {
 }
 
 function priorityTag(value) {
-  if (!value) return 'â€”';
+  if (!value) return '-';
 
   const normalizedValue = normalized(value);
 
