@@ -650,14 +650,23 @@ function renderRetentionCharts(showRow) {
 }
 
 function retentionDatasetForView(viewKey) {
-  const requestedKey = normalized(viewKey).replace(/\s+/g, ' ');
-  const matchingKey = Object.keys(state.retentionDatasets).find(key =>
-    normalized(key).replace(/\s+/g, ' ') === requestedKey
+  const retentionKey = value =>
+    normalized(value).replace(/[^a-z0-9]+/g, ' ').trim();
+  const requestedKey = retentionKey(viewKey);
+  const datasetEntries = Object.entries(state.retentionDatasets);
+  const exactMatch = datasetEntries.find(([key]) =>
+    retentionKey(key) === requestedKey
   );
 
-  return matchingKey
-    ? state.retentionDatasets[matchingKey]
-    : null;
+  if (exactMatch) return exactMatch[1];
+
+  const requestedTokens = requestedKey.split(' ');
+  const matchingEntry = datasetEntries.find(([key]) => {
+    const candidateKey = retentionKey(key);
+    return requestedTokens.every(token => candidateKey.includes(token));
+  });
+
+  return matchingEntry ? matchingEntry[1] : null;
 }
 
 function renderRetentionChart(showRow, viewKey, canvasId, sectionId) {
@@ -667,19 +676,26 @@ function renderRetentionChart(showRow, viewKey, canvasId, sectionId) {
   if (!section || !canvas) return;
 
   const dataset = retentionDatasetForView(viewKey);
+  const existingChart = typeof Chart !== 'undefined'
+    ? Chart.getChart(canvas)
+    : null;
+
+  if (existingChart) existingChart.destroy();
+
   const retentionRow = dataset?.isPPVBenchmark
     ? dataset.cohortRows?.[
         `${showRow['Show ID']}|${state.ppvMaxHour}`
-      ] || dataset.rows.find(row => row['Show ID'] === showRow['Show ID'])
-    : dataset?.rows.find(row => row['Show ID'] === showRow['Show ID']);
+      ] || dataset.rows.find(row =>
+        normalized(row['Show ID']) === normalized(showRow['Show ID'])
+      )
+    : dataset?.rows.find(row =>
+        normalized(row['Show ID']) === normalized(showRow['Show ID'])
+      );
 
   section.classList.remove('hidden');
 
   if (!retentionRow) {
-    if (state.retentionCharts[viewKey]) {
-      state.retentionCharts[viewKey].destroy();
-      delete state.retentionCharts[viewKey];
-    }
+    delete state.retentionCharts[viewKey];
     section.classList.add('hidden');
     return;
   }
@@ -689,10 +705,6 @@ function renderRetentionChart(showRow, viewKey, canvasId, sectionId) {
   if (!points.length) {
     section.classList.add('hidden');
     return;
-  }
-
-  if (state.retentionCharts[viewKey]) {
-    state.retentionCharts[viewKey].destroy();
   }
 
   if (typeof Chart === 'undefined') {
