@@ -47,6 +47,7 @@ async function init() {
     setupAllFilters();
     setupExport();
     setupOperationalColumns();
+    setupComparer();
     applyFilters();
   } catch (error) {
     $('dataStatus').textContent =
@@ -57,6 +58,7 @@ async function init() {
     setupAllFilters();
     setupExport();
     setupOperationalColumns();
+    setupComparer();
     applyFilters();
   }
 }
@@ -99,6 +101,11 @@ $('nextPage').addEventListener(
       render();
     }
   }
+);
+
+$('runComparer').addEventListener(
+  'click',
+  renderComparison
 );
 
 $('clearFilters').addEventListener(

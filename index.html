@@ -170,6 +170,48 @@
           </button>
         </div>
       </section>
+
+      <section class="workspace-card comparer-card">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">RETENTION COMPARISON</p>
+            <h2>Comparer</h2>
+          </div>
+          <span class="comparer-copy">Compare two shows across any retention view.</span>
+        </div>
+
+        <div class="comparer-controls">
+          <label class="comparer-field">
+            <span>Show ID 1</span>
+            <input id="compareShowIdOne" type="text" list="compareShowIds" placeholder="Enter first Show ID" />
+          </label>
+
+          <label class="comparer-field">
+            <span>Show ID 2</span>
+            <input id="compareShowIdTwo" type="text" list="compareShowIds" placeholder="Enter second Show ID" />
+          </label>
+
+          <label class="comparer-field">
+            <span>Retention type</span>
+            <select id="compareRetentionType"></select>
+          </label>
+
+          <label class="comparer-field">
+            <span>Hour</span>
+            <select id="compareRetentionHour"></select>
+          </label>
+
+          <button id="runComparer" class="button button-primary" type="button">Compare</button>
+        </div>
+
+        <datalist id="compareShowIds"></datalist>
+
+        <p id="comparerStatus" class="comparer-status"></p>
+
+        <div class="comparer-chart-wrap">
+          <canvas id="comparerChart"></canvas>
+        </div>
+      </section>
     </main>
   </div>
 

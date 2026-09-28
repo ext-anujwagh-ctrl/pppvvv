@@ -192,6 +192,12 @@ const RETENTION_VIEW_SECTIONS = [
   }
 ];
 
+const RETENTION_COMPARE_HOURS = [
+  1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+  15, 20, 30, 40, 50, 60, 70, 80, 90, 100,
+  120, 140, 160, 180, 200
+];
+
 const state = {
   allRows: [],
   retentionDatasets: {},
@@ -204,7 +210,8 @@ const state = {
   exportMode: 'all',
   filters: {},
   charts: {},
-  retentionChart: null
+  retentionChart: null,
+  comparerChart: null
 };
 
 const $ = id => document.getElementById(id);
