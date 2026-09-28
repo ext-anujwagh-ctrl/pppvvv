@@ -8,12 +8,7 @@ function closeModals() {
 
 async function init() {
   try {
-    const response = await fetch(
-      'data.csv',
-      {
-        cache: 'no-store'
-      }
-    );
+    const response = await fetch('data.csv', { cache: 'no-store' });
 
     if (!response.ok) {
       throw new Error('data.csv not found');
@@ -22,6 +17,20 @@ async function init() {
     const text = await response.text();
 
     state.allRows = parseCSV(text);
+
+    // Retention data is optional so the main dashboard can still load
+    // if data1.csv has not been added yet.
+    try {
+      const retentionResponse = await fetch('data1.csv', {
+        cache: 'no-store'
+      });
+
+      if (retentionResponse.ok) {
+        state.retentionRows = parseCSV(await retentionResponse.text());
+      }
+    } catch (retentionError) {
+      console.warn('Could not load data1.csv', retentionError);
+    }
 
     $('dataStatus').textContent =
       `${state.allRows.length.toLocaleString()} shows`;

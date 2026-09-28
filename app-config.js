@@ -149,6 +149,7 @@ const SHOW_LENGTH_BUCKETS = [
 
 const state = {
   allRows: [],
+  retentionRows: [],
   filteredRows: [],
   page: 1,
   pageSize: 10,
@@ -156,7 +157,8 @@ const state = {
   selectedColumns: [...CSV_HEADERS],
   exportMode: 'all',
   filters: {},
-  charts: {}
+  charts: {},
+  retentionChart: null
 };
 
 const $ = id => document.getElementById(id);

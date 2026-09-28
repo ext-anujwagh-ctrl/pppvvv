@@ -354,9 +354,151 @@ function openDetails(row) {
         <code>${escapeHTML(row['Show ID'] || '—')}</code>
       </div>
     </div>
+    <div class="retention-action-card">
+      <button id="showRetentionChart" class="button button-primary" type="button">
+        Normalised retention
+      </button>
+      <span id="retentionStatus" class="retention-status"></span>
+    </div>
+    <section id="retentionChartSection" class="retention-chart-section hidden">
+      <div class="detail-section-heading">
+        <span class="eyebrow">RETENTION PERFORMANCE</span>
+        <strong>Normalised retention by hour</strong>
+      </div>
+      <div class="retention-chart-wrap">
+        <canvas id="retentionChart"></canvas>
+      </div>
+    </section>
     ${sections}
     ${remainingSection}
   `;
 
   $('detailsModal').classList.remove('hidden');
+
+  $('showRetentionChart').addEventListener('click', () => {
+    renderRetentionChart(row);
+  });
+}
+
+function retentionFieldEntries(row) {
+  return Object.keys(row)
+    .map(field => {
+      const match = field.match(/^H(\d+) Ret% Nth TD$/i);
+
+      if (!match) return null;
+
+      const value = Number.parseFloat(
+        String(row[field] ?? '').replace('%', '').trim()
+      );
+
+      if (!Number.isFinite(value)) return null;
+
+      return {
+        hour: Number(match[1]),
+        value: value > 1 ? value : value * 100
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.hour - b.hour);
+}
+
+function renderRetentionChart(showRow) {
+  const section = $('retentionChartSection');
+  const status = $('retentionStatus');
+  const canvas = $('retentionChart');
+
+  if (!section || !status || !canvas) return;
+
+  const retentionRow = state.retentionRows.find(row =>
+    row['Show ID'] === showRow['Show ID']
+  );
+
+  section.classList.remove('hidden');
+
+  if (!retentionRow) {
+    status.textContent = 'No retention data found for this show.';
+    if (state.retentionChart) {
+      state.retentionChart.destroy();
+      state.retentionChart = null;
+    }
+    return;
+  }
+
+  const points = retentionFieldEntries(retentionRow);
+
+  if (!points.length) {
+    status.textContent = 'No hourly retention values found.';
+    return;
+  }
+
+  status.textContent = `${points.length} retention points`;
+
+  if (state.retentionChart) {
+    state.retentionChart.destroy();
+  }
+
+  if (typeof Chart === 'undefined') {
+    status.textContent = 'Chart library could not be loaded.';
+    return;
+  }
+
+  state.retentionChart = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: points.map(point => `H${point.hour}`),
+      datasets: [{
+        label: 'Normalised retention',
+        data: points.map(point => point.value),
+        borderColor: '#ff5964',
+        backgroundColor: 'rgba(255, 89, 100, .14)',
+        borderWidth: 2,
+        pointRadius: 2,
+        pointHoverRadius: 5,
+        fill: true,
+        tension: .25,
+        spanGaps: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        intersect: false,
+        mode: 'index'
+      },
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          callbacks: {
+            label: context => ` ${context.parsed.y.toFixed(1)}%`
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: {
+            color: '#8e98a9',
+            maxTicksLimit: 20,
+            maxRotation: 0
+          },
+          grid: {
+            display: false
+          }
+        },
+        y: {
+          beginAtZero: true,
+          suggestedMax: 100,
+          ticks: {
+            color: '#8e98a9',
+            callback: value => `${value}%`
+          },
+          grid: {
+            color: '#293140'
+          }
+        }
+      }
+    }
+  });
 }
