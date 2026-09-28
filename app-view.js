@@ -1108,6 +1108,36 @@ function reportRetentionFindings(row) {
     : ['No stage retention findings are available.'];
 }
 
+function reportFindings(row) {
+  const sourceFields = Object.keys(row);
+  const has = field => sourceFields.includes(field);
+  const findings = [];
+
+  if (has('stage_label_numbered') || has('sub_stage_label_numbered') || has('current_testing_state')) {
+    findings.push(
+      `Current position: ${reportValue(row, 'stage_label_numbered')} / ${reportValue(row, 'sub_stage_label_numbered')} with testing state ${reportValue(row, 'current_testing_state')}.`
+    );
+  }
+
+  const audienceFields = ['active_days_l30_distinct', 'published_word_count_l30', 'show_live_length'];
+  if (audienceFields.some(has)) {
+    findings.push(
+      `Audience: ${reportValue(row, 'active_days_l30_distinct')} active days in L30, ${reportValue(row, 'published_word_count_l30')} words published in L30, and ${reportValue(row, 'show_live_length')} live length.`
+    );
+  }
+
+  findings.push(...reportRetentionFindings(row));
+
+  const funnelFields = ['P1 Entered', 'P1 Pass', 'P2 Entered', 'P2 Pass', 'P3 Entered', 'P3 Pass'].filter(has);
+  if (funnelFields.length) {
+    findings.push(`Funnel: ${funnelFields.map(field => `${field} ${reportValue(row, field)}`).join(', ')}.`);
+  }
+
+  const blankCount = sourceFields.filter(field => !String(row[field] ?? '').trim()).length;
+  findings.push(`Data quality: ${blankCount} of ${sourceFields.length} source fields are blank.`);
+  return findings;
+}
+
 function reportFieldGroups(row) {
   const fields = Object.keys(row);
   const assigned = new Set();
@@ -1213,16 +1243,8 @@ function renderShowReport() {
     return;
   }
 
-  const sourceFields = Object.keys(row);
   const fieldGroups = reportFieldGroups(row);
-  const missingFields = sourceFields.filter(field => !String(row[field] ?? '').trim());
-  const findings = [
-    `Current position: ${reportValue(row, 'stage_label_numbered')} / ${reportValue(row, 'sub_stage_label_numbered')} with testing state ${reportValue(row, 'current_testing_state')}.`,
-    `Audience: ${reportValue(row, 'active_days_l30_distinct')} active days in L30, ${reportValue(row, 'published_word_count_l30')} words published in L30, and ${reportValue(row, 'show_live_length')} live length.`,
-    ...reportRetentionFindings(row),
-    `Funnel: P1 ${reportValue(row, 'P1 Pass')}, P2 ${reportValue(row, 'P2 Pass')}, and P3 ${reportValue(row, 'P3 Pass')}.`,
-    missingFields.length ? `Data quality: ${missingFields.length} of ${sourceFields.length} source fields are blank.` : 'Data quality: no blank source fields found.'
-  ];
+  const findings = reportFindings(row);
 
   output.innerHTML = `
     <div class="report-header">
@@ -1308,14 +1330,7 @@ function downloadShowReport() {
 
   ensureSpace(50);
   write('Findings and analysis', { size: 11, color: [15, 105, 130], weight: 'bold', gap: 5 });
-  const sourceFields = Object.keys(row);
-  const findings = [
-    `Current position: ${reportValue(row, 'stage_label_numbered')} / ${reportValue(row, 'sub_stage_label_numbered')} with testing state ${reportValue(row, 'current_testing_state')}.`,
-    `Audience: ${reportValue(row, 'active_days_l30_distinct')} active days in L30, ${reportValue(row, 'published_word_count_l30')} words published in L30, and ${reportValue(row, 'show_live_length')} live length.`,
-    ...reportRetentionFindings(row),
-    `Funnel: P1 ${reportValue(row, 'P1 Pass')}, P2 ${reportValue(row, 'P2 Pass')}, and P3 ${reportValue(row, 'P3 Pass')}.`,
-    `Data quality: ${sourceFields.filter(field => !String(row[field] ?? '').trim()).length} of ${sourceFields.length} source fields are blank.`
-  ];
+  const findings = reportFindings(row);
   findings.forEach(finding => write(`• ${finding}`, { size: 8.5, gap: 3 }));
 
   const filename = `${reportTitle(row).replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'show'}-report.pdf`;
