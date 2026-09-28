@@ -508,7 +508,7 @@ function retentionControlMarkup() {
               </div>
             </div>
             <div class="retention-pill-selector">
-              <span>Gender</span>
+              <span>Gender overall</span>
               <div class="retention-pill-group">
                 ${section.rows[0]?.options.slice(1).map(option => option.disabled
                   ? ''
@@ -712,21 +712,15 @@ function allRetentionOptions() {
 
 function setupComparer() {
   const typeSelect = $('compareRetentionType');
-  const hourSelect = $('compareRetentionHour');
   const datalist = $('compareShowIds');
 
-  if (!typeSelect || !hourSelect || !datalist) return;
+  if (!typeSelect || !datalist) return;
 
   typeSelect.innerHTML = allRetentionOptions()
     .map(option => `
       <option value="${escapeHTML(option.sheet)}">${escapeHTML(option.label)}</option>
     `)
     .join('');
-
-  hourSelect.innerHTML = `
-    <option value="all">All hours</option>
-    ${RETENTION_COMPARE_HOURS.map(hour => `<option value="${hour}">H${hour}</option>`).join('')}
-  `;
 
   datalist.innerHTML = state.allRows
     .map(row => `<option value="${escapeHTML(row['Show ID'])}">${escapeHTML(row['Show Title'])}</option>`)
@@ -745,9 +739,8 @@ function renderComparison() {
   const canvas = $('comparerChart');
   const status = $('comparerStatus');
   const typeSelect = $('compareRetentionType');
-  const hourSelect = $('compareRetentionHour');
 
-  if (!canvas || !status || !typeSelect || !hourSelect) return;
+  if (!canvas || !status || !typeSelect) return;
 
   const showIdOne = $('compareShowIdOne').value.trim();
   const showIdTwo = $('compareShowIdTwo').value.trim();
@@ -769,7 +762,6 @@ function renderComparison() {
   const pointsTwo = retentionFieldEntries(rowTwo);
   const pointMapOne = new Map(pointsOne.map(point => [point.hour, point.value]));
   const pointMapTwo = new Map(pointsTwo.map(point => [point.hour, point.value]));
-  const selectedHour = hourSelect.value;
 
   if (state.comparerChart) {
     state.comparerChart.destroy();
@@ -778,58 +770,39 @@ function renderComparison() {
 
   status.textContent = `${rowOne['Show Title'] || showIdOne} vs ${rowTwo['Show Title'] || showIdTwo}`;
 
-  if (selectedHour === 'all') {
-    const hours = RETENTION_COMPARE_HOURS.filter(hour =>
-      pointMapOne.has(hour) || pointMapTwo.has(hour)
-    );
-
-    state.comparerChart = new Chart(canvas, {
-      type: 'line',
-      data: {
-        labels: hours.map(hour => `H${hour}`),
-        datasets: [
-          {
-            label: rowOne['Show Title'] || showIdOne,
-            data: hours.map(hour => pointMapOne.get(hour) ?? null),
-            borderColor: '#ff5964',
-            backgroundColor: 'transparent',
-            borderWidth: 2,
-            pointRadius: 2,
-            pointHoverRadius: 5,
-            spanGaps: true,
-            tension: .25
-          },
-          {
-            label: rowTwo['Show Title'] || showIdTwo,
-            data: hours.map(hour => pointMapTwo.get(hour) ?? null),
-            borderColor: '#55c5d6',
-            backgroundColor: 'transparent',
-            borderWidth: 2,
-            pointRadius: 2,
-            pointHoverRadius: 5,
-            spanGaps: true,
-            tension: .25
-          }
-        ]
-      },
-      options: comparisonChartOptions()
-    });
-    return;
-  }
-
-  const hour = Number(selectedHour);
+  const hours = [...new Set([
+    ...pointsOne.map(point => point.hour),
+    ...pointsTwo.map(point => point.hour)
+  ])].sort((a, b) => a - b);
 
   state.comparerChart = new Chart(canvas, {
-    type: 'bar',
+    type: 'line',
     data: {
-      labels: [rowOne['Show Title'] || showIdOne, rowTwo['Show Title'] || showIdTwo],
-      datasets: [{
-        label: `H${hour} retention`,
-        data: [pointMapOne.get(hour) ?? null, pointMapTwo.get(hour) ?? null],
-        backgroundColor: ['#ff5964', '#55c5d6'],
-        borderRadius: 5,
-        barPercentage: .5
-      }]
+      labels: hours.map(hour => `H${hour}`),
+      datasets: [
+        {
+          label: rowOne['Show Title'] || showIdOne,
+          data: hours.map(hour => pointMapOne.get(hour) ?? null),
+          borderColor: '#ff5964',
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          pointRadius: 2,
+          pointHoverRadius: 5,
+          spanGaps: true,
+          tension: .25
+        },
+        {
+          label: rowTwo['Show Title'] || showIdTwo,
+          data: hours.map(hour => pointMapTwo.get(hour) ?? null),
+          borderColor: '#55c5d6',
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          pointRadius: 2,
+          pointHoverRadius: 5,
+          spanGaps: true,
+          tension: .25
+        }
+      ]
     },
     options: comparisonChartOptions()
   });
