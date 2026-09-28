@@ -864,7 +864,10 @@ function setupComparer() {
     .join('');
 
   if (reportDatalist) {
-    reportDatalist.innerHTML = datalist.innerHTML;
+    const reportRows = state.reportRows.length ? state.reportRows : state.allRows;
+    reportDatalist.innerHTML = reportRows
+      .map(row => `<option value="${escapeHTML(row.show_id || row['Show ID'])}">${escapeHTML(row.show_title || row['Show Title'])}</option>`)
+      .join('');
   }
 }
 
@@ -892,7 +895,6 @@ const COMPARER_METRICS = [
   ['Overall Editorial conviction', 'Editorial conviction'],
   ['Subjective Conviction', 'Subjective conviction'],
   ['Show Length', 'Show length'],
-  ['Genre', 'Genre'],
   ['Category', 'Category'],
   ['Priority', 'Priority'],
   ['PPV Tag', 'PPV tag']
@@ -1065,14 +1067,107 @@ function renderComparison() {
 
 function reportRowByInput(value) {
   const target = normalized(value);
-  return state.allRows.find(row =>
-    normalized(row['Show ID']) === target ||
-    normalized(row['Show Title']) === target
+  const reportRows = state.reportRows.length ? state.reportRows : state.allRows;
+  return reportRows.find(row =>
+    normalized(row.show_id || row['Show ID']) === target ||
+    normalized(row.show_title || row['Show Title']) === target
   );
 }
 
 function reportValue(row, field) {
   return displayMetricValue(row[field]);
+}
+
+const REPORT_OVERVIEW_FIELDS = [
+  ['show_id', 'Show ID'],
+  ['book_id', 'Book ID'],
+  ['book_title', 'Book title'],
+  ['show_cohort', 'Show cohort'],
+  ['editor', 'Editor'],
+  ['senior_editor', 'Senior editor'],
+  ['channel_type', 'Channel type'],
+  ['book_genre', 'Genre'],
+  ['stage_label_numbered', 'Stage'],
+  ['sub_stage_label_numbered', 'Sub-stage'],
+  ['current_testing_state', 'Testing state'],
+  ['current_age_bucket', 'Age bucket'],
+  ['book_status', 'Book status'],
+  ['show_status', 'Show status'],
+  ['contract_status', 'Contract status'],
+  ['wbp_status', 'WBP status'],
+  ['wbp_sub_status', 'WBP sub-status'],
+  ['incentive_flag', 'Incentive flag'],
+  ['ppv_tag', 'PPV tag']
+];
+
+const REPORT_PERFORMANCE_FIELDS = [
+  ['published_word_count', 'Published word count'],
+  ['published_word_count_l30', 'Published words L30'],
+  ['show_live_length', 'Show live length'],
+  ['l7d_active_days', 'L7D active days'],
+  ['active_days_l30_distinct', 'Active days L30'],
+  ['editor_score', 'Editor score'],
+  ['moderation_status', 'Moderation status'],
+  ['llm_result', 'LLM result'],
+  ['llm_score', 'LLM score'],
+  ['author_other_book_l30d_active_days', 'Author other-book activity L30'],
+  ['compact_llm_geo', 'LLM geography']
+];
+
+function reportTitle(row) {
+  return row.show_title || row['Show Title'] || row.book_title || row['Show Title'] || 'Show';
+}
+
+function reportId(row) {
+  return row.show_id || row['Show ID'] || '-';
+}
+
+function reportRetentionFindings(row) {
+  const stagePairs = [
+    ['p1s1', 'P1 S1'], ['p1s2', 'P1 S2'],
+    ['p2s1', 'P2 S1'], ['p2s2', 'P2 S2'],
+    ['p3s1', 'P3 S1'], ['p3s2', 'P3 S2']
+  ];
+  const comparisons = stagePairs
+    .map(([key, label]) => {
+      const actual = Number.parseFloat(row[`${key}_retention_rate`]);
+      const benchmark = Number.parseFloat(row[`${key}_benchmark_retention_rate`]);
+      if (!Number.isFinite(actual)) return null;
+      if (!Number.isFinite(benchmark)) return `${label}: retention ${actual}% with no benchmark.`;
+      const gap = actual - benchmark;
+      return `${label}: ${actual}% vs ${benchmark}% benchmark (${gap >= 0 ? '+' : ''}${gap.toFixed(1)} pts).`;
+    })
+    .filter(Boolean);
+
+  return comparisons.length
+    ? comparisons
+    : ['No stage retention findings are available.'];
+}
+
+function retentionReportFinding(label, points, benchmarkRow) {
+  if (!points.length) return `${label}: no retention data available.`;
+
+  const average = points.reduce((sum, point) => sum + point.value, 0) / points.length;
+  if (!benchmarkRow) {
+    return `${label}: average retention is ${average.toFixed(1)}% across ${points.length} available points; no benchmark is available.`;
+  }
+
+  const benchmarkPoints = retentionFieldEntries(benchmarkRow);
+  const benchmarkByHour = new Map(benchmarkPoints.map(point => [point.hour, point.value]));
+  const comparable = points.filter(point => benchmarkByHour.has(point.hour));
+  if (!comparable.length) {
+    return `${label}: average retention is ${average.toFixed(1)}%; no matching benchmark points are available.`;
+  }
+
+  const benchmarkAverage = comparable.reduce(
+    (sum, point) => sum + benchmarkByHour.get(point.hour),
+    0
+  ) / comparable.length;
+  const gap = average - benchmarkAverage;
+  const firstBelow = comparable.find(point => point.value < benchmarkByHour.get(point.hour));
+  const position = gap >= 0 ? 'above' : 'below';
+
+  return `${label}: average retention is ${average.toFixed(1)}%, ${Math.abs(gap).toFixed(1)} points ${position} benchmark. ${firstBelow ? `First below benchmark at H${firstBelow.hour}.` : 'No available point falls below benchmark.'}`;
 }
 
 function renderShowReport() {
@@ -1090,64 +1185,65 @@ function renderShowReport() {
     return;
   }
 
-  const reportFields = [
-    ['Show ID', 'Show ID'],
-    ['Genre', 'Genre'],
-    ['Show Length', 'Show length'],
-    ['Priority', 'Priority'],
-    ['PPV Tag', 'PPV tag'],
-    ['Activity Days (L30D)', 'L30 activity'],
-    ['Throughput (L30D)', 'Throughput'],
-    ['Overall Editorial conviction', 'Editorial conviction'],
-    ['Subjective Conviction', 'Subjective conviction'],
-    ['Editor', 'Editor'],
-    ['Author Name', 'Author'],
-    ['Author Locale', 'Author locale']
+  const sourceFields = Object.keys(row);
+  const fullDataFields = sourceFields.map(field => [field, field.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase())]);
+  const missingFields = sourceFields.filter(field => !String(row[field] ?? '').trim());
+  const findings = [
+    `Current position: ${reportValue(row, 'stage_label_numbered')} / ${reportValue(row, 'sub_stage_label_numbered')} with testing state ${reportValue(row, 'current_testing_state')}.`,
+    `Audience: ${reportValue(row, 'active_days_l30_distinct')} active days in L30, ${reportValue(row, 'published_word_count_l30')} words published in L30, and ${reportValue(row, 'show_live_length')} live length.`,
+    ...reportRetentionFindings(row),
+    `Funnel: P1 ${reportValue(row, 'P1 Pass')}, P2 ${reportValue(row, 'P2 Pass')}, and P3 ${reportValue(row, 'P3 Pass')}.`,
+    missingFields.length ? `Data quality: ${missingFields.length} of ${sourceFields.length} source fields are blank.` : 'Data quality: no blank source fields found.'
   ];
-
-  const normalisedDataset = retentionDatasetForView('normalised overall');
-  const normalisedRow = compareRowById(normalisedDataset, row['Show ID']);
-  const normalisedPoints = retentionFieldEntries(normalisedRow);
-  const ppvDataset = retentionDatasetForView('ppv benchmarks');
-  const ppvShow = ppvDataset?.rows.find(item =>
-    normalized(item['Show ID']) === normalized(row['Show ID'])
-  );
-  const ppvRow = ppvDataset?.cohortRows?.[
-    `${row['Show ID']}|${ppvShow?.['PPV Max Hour']}`
-  ];
-  const ppvPoints = retentionFieldEntries(ppvRow);
 
   output.innerHTML = `
     <div class="report-header">
       <div>
         <p class="eyebrow">SHOW REPORT</p>
-        <h3>${escapeHTML(row['Show Title'] || 'Show')}</h3>
-        <span>${escapeHTML(row['Show ID'] || '-')}</span>
+        <h3>${escapeHTML(reportTitle(row))}</h3>
+        <span>${escapeHTML(reportId(row))}</span>
       </div>
-      <span class="report-status-tag">${escapeHTML(row['Active/Inactive'] || '-')}</span>
+      <span class="report-status-tag">${escapeHTML(reportValue(row, 'show_status'))}</span>
     </div>
-    <div class="report-grid">
-      ${reportFields.map(([field, label]) => `
+    <div class="report-subheading">Overview</div>
+    <div class="report-grid report-overview-grid">
+      ${REPORT_OVERVIEW_FIELDS.map(([field, label]) => `
         <div class="report-item">
           <span>${escapeHTML(label)}</span>
           <strong>${escapeHTML(reportValue(row, field))}</strong>
         </div>
       `).join('')}
     </div>
+    <div class="report-subheading">Performance</div>
+    <div class="report-grid report-overview-grid">
+      ${REPORT_PERFORMANCE_FIELDS.map(([field, label]) => `
+        <div class="report-item">
+          <span>${escapeHTML(label)}</span>
+          <strong>${escapeHTML(reportValue(row, field))}</strong>
+        </div>
+      `).join('')}
+    </div>
+    <div class="report-analysis">
+      <span>Findings and analysis</span>
+      <ul>${findings.map(finding => `<li>${escapeHTML(finding)}</li>`).join('')}</ul>
+    </div>
     <div class="report-notes">
-      <span>Normalised retention</span>
-      <p>${escapeHTML(normalisedPoints.length ? normalisedPoints.map(point => `H${point.hour}: ${point.value.toFixed(1)}%`).join(' · ') : '-')}</p>
-      <span>PPV benchmark retention</span>
-      <p>${escapeHTML(ppvPoints.length ? `H${ppvRow['PPV Max Hour']} cohort · ${ppvPoints.map(point => `H${point.hour}: ${point.value.toFixed(1)}%`).join(' · ')}` : '-')}</p>
-      <span>Editorial comments · Writer POV</span>
-      <p>${escapeHTML(reportValue(row, 'Editorial Comments (Writer POV)'))}</p>
-      <span>Editorial comments · Story POV</span>
-      <p>${escapeHTML(reportValue(row, 'Editorial Comments (Story POV)'))}</p>
+      <span>Retention and benchmark findings</span>
+      ${reportRetentionFindings(row).map(finding => `<p>${escapeHTML(finding)}</p>`).join('')}
+    </div>
+    <div class="report-subheading">Complete source data</div>
+    <div class="report-grid report-full-data-grid">
+      ${fullDataFields.map(([field, label]) => `
+        <div class="report-item">
+          <span>${escapeHTML(label)}</span>
+          <strong>${escapeHTML(reportValue(row, field))}</strong>
+        </div>
+      `).join('')}
     </div>
   `;
   output.classList.remove('hidden');
   printButton?.classList.remove('hidden');
-  status.textContent = `Report generated for ${row['Show Title'] || row['Show ID']}.`;
+  status.textContent = `Report generated for ${reportTitle(row)}.`;
 }
 
 function comparisonChartOptions() {

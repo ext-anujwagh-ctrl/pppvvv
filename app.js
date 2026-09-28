@@ -18,6 +18,19 @@ async function init() {
 
     state.allRows = parseCSV(text);
 
+    try {
+      const reportResponse = await fetch(
+        'contracted_titles_filtered_2026-09-28.csv',
+        { cache: 'no-store' }
+      );
+
+      if (reportResponse.ok) {
+        state.reportRows = parseCSV(await reportResponse.text());
+      }
+    } catch (reportError) {
+      console.warn('Could not load contracted titles report data', reportError);
+    }
+
     // Retention workbook is optional so the main dashboard can still load
     // if data1.xlsx has not been added yet.
     try {

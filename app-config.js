@@ -205,6 +205,7 @@ const RETENTION_VIEW_SECTIONS = [
 
 const state = {
   allRows: [],
+  reportRows: [],
   retentionDatasets: {},
   retentionView: 'normalised overall',
   filteredRows: [],
