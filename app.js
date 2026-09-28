@@ -103,8 +103,12 @@ $('nextPage').addEventListener(
   }
 );
 
-$('runComparer').addEventListener(
-  'click',
+['compareShowIdOne', 'compareShowIdTwo'].forEach(id => {
+  $(id).addEventListener('input', renderComparison);
+});
+
+$('compareRetentionType').addEventListener(
+  'change',
   renderComparison
 );
 

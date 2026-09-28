@@ -738,9 +738,10 @@ function compareRowById(dataset, showId) {
 function renderComparison() {
   const canvas = $('comparerChart');
   const status = $('comparerStatus');
+  const analysis = $('comparerAnalysis');
   const typeSelect = $('compareRetentionType');
 
-  if (!canvas || !status || !typeSelect) return;
+  if (!canvas || !status || !analysis || !typeSelect) return;
 
   const showIdOne = $('compareShowIdOne').value.trim();
   const showIdTwo = $('compareShowIdTwo').value.trim();
@@ -750,11 +751,13 @@ function renderComparison() {
 
   if (!showIdOne || !showIdTwo) {
     status.textContent = 'Enter two Show IDs to compare.';
+    analysis.textContent = '';
     return;
   }
 
   if (!dataset || !rowOne || !rowTwo) {
     status.textContent = 'One or both Show IDs were not found for this retention type.';
+    analysis.textContent = '';
     return;
   }
 
@@ -769,6 +772,25 @@ function renderComparison() {
   }
 
   status.textContent = `${rowOne['Show Title'] || showIdOne} vs ${rowTwo['Show Title'] || showIdTwo}`;
+
+  const average = points => points.reduce((sum, point) => sum + point.value, 0) / points.length;
+  const averageOne = average(pointsOne);
+  const averageTwo = average(pointsTwo);
+  const averageDifference = averageOne - averageTwo;
+  const latestHour = Math.max(
+    pointsOne.at(-1)?.hour ?? 0,
+    pointsTwo.at(-1)?.hour ?? 0
+  );
+  const latestOne = pointMapOne.get(latestHour);
+  const latestTwo = pointMapTwo.get(latestHour);
+  const differenceText = `${Math.abs(averageDifference).toFixed(1)} percentage points ${averageDifference >= 0 ? 'higher' : 'lower'}`;
+
+  analysis.textContent = [
+    `${rowOne['Show Title'] || showIdOne} averages ${averageOne.toFixed(1)}% versus ${rowTwo['Show Title'] || showIdTwo} at ${averageTwo.toFixed(1)}% (${differenceText}).`,
+    Number.isFinite(latestOne) && Number.isFinite(latestTwo)
+      ? `At H${latestHour}, retention is ${latestOne.toFixed(1)}% versus ${latestTwo.toFixed(1)}%.`
+      : 'The latest available hour is present for only one of the selected shows.'
+  ].join('\n');
 
   const hours = [...new Set([
     ...pointsOne.map(point => point.hour),
