@@ -138,21 +138,9 @@ $('compareRetentionType').addEventListener(
   renderComparison
 );
 
-$('generateReport').addEventListener(
+$('downloadReport').addEventListener(
   'click',
-  renderShowReport
-);
-
-$('reportShowId').addEventListener(
-  'keydown',
-  event => {
-    if (event.key === 'Enter') renderShowReport();
-  }
-);
-
-$('printReport').addEventListener(
-  'click',
-  () => window.print()
+  downloadShowReport
 );
 
 $('clearFilters').addEventListener(

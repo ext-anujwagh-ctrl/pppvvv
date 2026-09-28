@@ -1144,6 +1144,74 @@ function reportRetentionFindings(row) {
     : ['No stage retention findings are available.'];
 }
 
+function reportFieldGroups(row) {
+  const fields = Object.keys(row);
+  const assigned = new Set();
+  const groups = [];
+  const addGroup = (title, keys) => {
+    const available = keys.filter(key => fields.includes(key));
+    available.forEach(key => assigned.add(key));
+    if (available.length) groups.push({
+      title,
+      fields: available.map(field => [
+        field,
+        field.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase())
+      ])
+    });
+  };
+
+  addGroup('Show and contract overview', [
+    'show_id', 'show_title', 'book_id', 'book_title', 'show_cohort',
+    'editor', 'senior_editor', 'channel_type', 'book_genre'
+  ]);
+  addGroup('Status and stage', [
+    'stage_label_numbered', 'sub_stage_label_numbered', 'current_testing_state',
+    'current_age_bucket', 'book_status', 'show_status', 'contract_status',
+    'wbp_status', 'wbp_sub_status', 'incentive_flag', 'ppv_tag'
+  ]);
+  addGroup('Publishing and audience', [
+    'published_word_count', 'published_word_count_l30', 'show_live_length',
+    'l7d_active_days', 'active_days_l30_distinct', 'author_other_book_l30d_active_days',
+    'date_10k', 'date_crossed_50k', 'date_crossed_100k', 'date_crossed_200k',
+    'date_crossed_300k', 'date_crossed_400k', 'date_crossed_h1', 'date_crossed_h2',
+    'date_crossed_h5', 'date_crossed_h10', 'date_crossed_h20', 'date_crossed_h30',
+    'date_crossed_h40'
+  ]);
+  addGroup('Editorial and quality', [
+    'moderation_status', 'moderation_evaluation_date', 'editor_score',
+    'llm_result', 'llm_score', 'compact_llm_geo', 'recent_bad_time'
+  ]);
+  addGroup('Retention and testing stages', fields.filter(field =>
+    /^(p1s1|p1s2|p2s1|p2s2|p3s1|p3s2)_/.test(field)
+  ));
+  addGroup('Funnel and milestones', [
+    'Number of books', 'Book rank', 'Auth geography', 'Author book rank (>5k words)',
+    'Stage Funnel Stage', 'Stage Funnel Bucket', 'Stage Funnel Sub-Bucket',
+    'P1 Entered', 'P1 Pass', 'P2 Entered', 'P2 Pass', 'P3 Entered', 'P3 Pass',
+    'H5 BM Met', 'H10 BM Met', 'H20 BM Met', 'H30 BM Met', 'H40 BM Met'
+  ]);
+
+  const remaining = fields.filter(field => !assigned.has(field));
+  if (remaining.length) addGroup('Other source data', remaining);
+  return groups;
+}
+
+function reportGroupMarkup(groups) {
+  return groups.map(group => `
+    <div class="report-subheading">${escapeHTML(group.title)}</div>
+    <div class="report-grid report-overview-grid">
+      ${group.fields.map(([field, label]) => `
+        <div class="report-item">
+          <span>${escapeHTML(label)}</span>
+          <strong>${escapeHTML(reportValue(currentReportRow, field))}</strong>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+}
+
+let currentReportRow = null;
+
 function retentionReportFinding(label, points, benchmarkRow) {
   if (!points.length) return `${label}: no retention data available.`;
 

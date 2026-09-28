@@ -229,8 +229,7 @@
               <span>Show Title / Show ID</span>
               <input id="reportShowId" type="text" list="reportShowIds" placeholder="Enter" />
             </label>
-            <button id="generateReport" class="button button-primary" type="button">Generate report</button>
-            <button id="printReport" class="button button-ghost hidden" type="button">Print report</button>
+            <button id="downloadReport" class="button button-primary" type="button">Download report</button>
           </div>
           <datalist id="reportShowIds"></datalist>
           <p id="reportStatus" class="comparer-status"></p>
@@ -363,6 +362,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="app-config.js"></script>
   <script src="app-utils.js"></script>
   <script src="app-filters.js"></script>
