@@ -364,6 +364,7 @@ function openDetails(row) {
         <span class="eyebrow">RETENTION PERFORMANCE</span>
         <strong>Normalised retention by hour</strong>
       </div>
+      <div id="retentionControls" class="retention-controls"></div>
       <div class="retention-chart-wrap">
         <canvas id="retentionChart"></canvas>
       </div>
@@ -401,17 +402,55 @@ function retentionFieldEntries(row) {
     .sort((a, b) => a.hour - b.hour);
 }
 
+function retentionControlMarkup() {
+  return RETENTION_VIEW_GROUPS.map(group => `
+    <div class="retention-control-group">
+      <span class="retention-control-label">${escapeHTML(group.label)}</span>
+      <div class="retention-control-options">
+        ${group.options.map(option => `
+          <button
+            class="retention-control-option ${state.retentionView === option.sheet ? 'active' : ''}"
+            type="button"
+            data-retention-sheet="${escapeHTML(option.sheet)}"
+          >
+            ${escapeHTML(option.label)}
+          </button>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function setupRetentionControls(showRow) {
+  const container = $('retentionControls');
+  if (!container) return;
+
+  container.innerHTML = retentionControlMarkup();
+
+  container
+    .querySelectorAll('[data-retention-sheet]')
+    .forEach(button => {
+      button.addEventListener('click', () => {
+        state.retentionView = button.dataset.retentionSheet;
+        setupRetentionControls(showRow);
+        renderRetentionChart(showRow);
+      });
+    });
+}
+
 function renderRetentionChart(showRow) {
   const section = $('retentionChartSection');
   const canvas = $('retentionChart');
 
   if (!section || !canvas) return;
 
-  const retentionRow = state.retentionRows.find(row =>
+  const dataset = state.retentionDatasets[state.retentionView];
+  const retentionRow = dataset?.rows.find(row =>
     row['Show ID'] === showRow['Show ID']
   );
 
   section.classList.remove('hidden');
+  setupRetentionControls(showRow);
 
   if (!retentionRow) {
     if (state.retentionChart) {
@@ -439,12 +478,12 @@ function renderRetentionChart(showRow) {
   }
 
   const genreKey = normalized(showRow['Genre']);
-  const benchmarkValues = NORMALISED_RETENTION_BENCHMARKS[genreKey];
+  const benchmarkRow = dataset.benchmarks[genreKey];
+  const benchmarkPoints = benchmarkRow
+    ? retentionFieldEntries(benchmarkRow)
+    : [];
   const benchmarkByHour = new Map(
-    RETENTION_BENCHMARK_HOURS.map((hour, index) => [
-      hour,
-      benchmarkValues ? benchmarkValues[index] * 100 : null
-    ])
+    benchmarkPoints.map(point => [point.hour, point.value])
   );
 
   const benchmarkLabel = showRow['Genre']
@@ -464,7 +503,7 @@ function renderRetentionChart(showRow) {
     spanGaps: true
   }];
 
-  if (benchmarkValues) {
+  if (benchmarkPoints.length) {
     datasets.push({
       label: benchmarkLabel,
       data: points.map(point => benchmarkByHour.get(point.hour)),

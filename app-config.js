@@ -147,39 +147,37 @@ const SHOW_LENGTH_BUCKETS = [
   '100+'
 ];
 
-const RETENTION_BENCHMARK_HOURS = [
-  1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
-  15, 20, 30, 40, 50, 60, 70, 80, 90, 100,
-  120, 140, 160, 180, 200
+const RETENTION_VIEW_GROUPS = [
+  {
+    label: 'Normalised retention',
+    options: [
+      { label: 'Total', sheet: 'normalised overall' },
+      { label: 'US', sheet: 'normalised US' }
+    ]
+  },
+  {
+    label: 'Gender',
+    options: [
+      { label: 'All', sheet: 'normalised overall' },
+      { label: 'Female', sheet: 'normalised female' },
+      { label: 'Male', sheet: 'normalised male' }
+    ]
+  },
+  {
+    label: 'Whale+',
+    options: [
+      { label: 'Whale Overall', sheet: 'Whale+ Overall' },
+      { label: 'Whale Female', sheet: 'Whale+ Female' },
+      { label: 'Whale Male', sheet: 'Whale+ Male' },
+      { label: 'Whale US', sheet: 'Whale+ US' }
+    ]
+  }
 ];
-
-const NORMALISED_RETENTION_BENCHMARKS = {
-  fantasy: [
-    0.870, 0.439, 0.377, 0.349, 0.320,
-    0.309, 0.279, 0.257, 0.247, 0.239,
-    0.213, 0.189, 0.165, 0.148, 0.139,
-    0.134, 0.129, 0.124, 0.120, 0.116,
-    0.111, 0.105, 0.097, 0.090, 0.083
-  ],
-  romantasy: [
-    0.849, 0.695, 0.617, 0.550, 0.444,
-    0.380, 0.340, 0.316, 0.297, 0.285,
-    0.241, 0.218, 0.192, 0.175, 0.148,
-    0.132, 0.116, 0.102, 0.091, 0.079,
-    0.060, 0.041, 0.000, 0.000, 0.000
-  ],
-  romance: [
-    0.910, 0.564, 0.501, 0.416, 0.371,
-    0.309, 0.283, 0.265, 0.254, 0.246,
-    0.213, 0.193, 0.174, 0.153, 0.140,
-    0.127, 0.120, 0.113, 0.101, 0.090,
-    0.069, 0.049, 0.027, 0.000, 0.000
-  ]
-};
 
 const state = {
   allRows: [],
-  retentionRows: [],
+  retentionDatasets: {},
+  retentionView: 'normalised overall',
   filteredRows: [],
   page: 1,
   pageSize: 10,

@@ -130,6 +130,12 @@ tbody tr:hover { background: #171a20; }
 .retention-chart-section { display: flex; flex-direction: column; gap: 12px; padding: 15px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-raised); }
 .retention-chart-section .detail-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .retention-chart-wrap { position: relative; height: 330px; min-height: 260px; }
+.retention-controls { display: flex; flex-wrap: wrap; gap: 12px; padding: 11px; border: 1px solid var(--line); border-radius: 8px; background: rgba(255, 255, 255, .02); }
+.retention-control-group { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.retention-control-label { color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.retention-control-options { display: flex; flex-wrap: wrap; gap: 4px; }
+.retention-control-option { padding: 5px 8px; border: 1px solid var(--line); border-radius: 5px; color: var(--muted); background: transparent; font: inherit; font-size: 10px; cursor: pointer; }
+.retention-control-option:hover, .retention-control-option.active { border-color: var(--accent); color: #fff; background: rgba(255, 89, 100, .14); }
 .details-identity { display: grid; grid-template-columns: minmax(0, 2fr) minmax(180px, 1fr); gap: 18px; padding: 16px 18px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-raised); }
 .identity-main, .identity-id { min-width: 0; }
 .identity-main strong { display: block; margin-top: 5px; overflow: hidden; color: #fff; font-family: 'Space Grotesk', sans-serif; font-size: 21px; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }

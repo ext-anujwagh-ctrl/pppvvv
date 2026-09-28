@@ -18,18 +18,27 @@ async function init() {
 
     state.allRows = parseCSV(text);
 
-    // Retention data is optional so the main dashboard can still load
-    // if data1.csv has not been added yet.
+    // Retention workbook is optional so the main dashboard can still load
+    // if data1.xlsx has not been added yet.
     try {
-      const retentionResponse = await fetch('data1.csv', {
+      const retentionResponse = await fetch('data1.xlsx', {
         cache: 'no-store'
       });
 
       if (retentionResponse.ok) {
-        state.retentionRows = parseCSV(await retentionResponse.text());
+        if (typeof XLSX === 'undefined') {
+          throw new Error('SheetJS could not be loaded');
+        }
+
+        const workbook = XLSX.read(
+          await retentionResponse.arrayBuffer(),
+          { type: 'array' }
+        );
+
+        state.retentionDatasets = parseRetentionWorkbook(workbook);
       }
     } catch (retentionError) {
-      console.warn('Could not load data1.csv', retentionError);
+      console.warn('Could not load data1.xlsx', retentionError);
     }
 
     $('dataStatus').textContent =

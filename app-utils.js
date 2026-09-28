@@ -61,6 +61,63 @@ function parseCSV(text) {
   );
 }
 
+function parseRetentionWorkbook(workbook) {
+  const datasets = {};
+
+  workbook.SheetNames.forEach(sheetName => {
+    const matrix = XLSX.utils.sheet_to_json(
+      workbook.Sheets[sheetName],
+      {
+        header: 1,
+        defval: ''
+      }
+    );
+
+    const headerIndex = matrix.findIndex(row =>
+      row.some(cell => String(cell).trim() === 'Show ID')
+    );
+
+    if (headerIndex < 0) return;
+
+    const headers = matrix[headerIndex].map(cell =>
+      String(cell || '').trim()
+    );
+
+    const benchmarkRows = {};
+
+    matrix.slice(0, headerIndex).forEach(row => {
+      const type = String(row[1] || '').trim().toLowerCase();
+      const genre = String(row[2] || '').trim();
+
+      if (type !== 'benchmark' || !genre) return;
+
+      benchmarkRows[normalized(genre)] = Object.fromEntries(
+        headers.map((header, index) => [
+          header,
+          row[index] ?? ''
+        ])
+      );
+    });
+
+    const rows = matrix
+      .slice(headerIndex + 1)
+      .map(values => Object.fromEntries(
+        headers.map((header, index) => [
+          header,
+          String(values[index] ?? '').trim()
+        ])
+      ))
+      .filter(row => row['Show ID']);
+
+    datasets[sheetName] = {
+      rows,
+      benchmarks: benchmarkRows
+    };
+  });
+
+  return datasets;
+}
+
 function unique(field) {
   return [
     ...new Set(
@@ -171,5 +228,4 @@ function priorityTag(value) {
     </span>
   `;
 }
-
 
