@@ -403,22 +403,40 @@ function retentionFieldEntries(row) {
 }
 
 function retentionControlMarkup() {
-  return RETENTION_VIEW_GROUPS.map(group => `
-    <div class="retention-control-group">
-      <span class="retention-control-label">${escapeHTML(group.label)}</span>
-      <div class="retention-control-options">
-        ${group.options.map(option => `
-          <button
-            class="retention-control-option ${state.retentionView === option.sheet ? 'active' : ''}"
-            type="button"
-            data-retention-sheet="${escapeHTML(option.sheet)}"
-          >
-            ${escapeHTML(option.label)}
-          </button>
-        `).join('')}
-      </div>
+  return `
+    <div class="retention-selector-grid">
+      ${RETENTION_VIEW_SECTIONS.map(section => `
+        <div class="retention-selector-section">
+          <div class="retention-selector-title">${escapeHTML(section.label)}</div>
+          <div class="retention-selector-table">
+            <div class="retention-selector-row retention-selector-header">
+              <span>Locale / Gender</span>
+              <span>Overall</span>
+              <span>Male</span>
+              <span>Female</span>
+            </div>
+            ${section.rows.map(row => `
+              <div class="retention-selector-row">
+                <span class="retention-selector-locale">${escapeHTML(row.label)}</span>
+                ${row.options.map(option => option.disabled
+                  ? '<button class="retention-control-option" type="button" disabled>—</button>'
+                  : `
+                    <button
+                      class="retention-control-option ${state.retentionView === option.sheet ? 'active' : ''}"
+                      type="button"
+                      data-retention-sheet="${escapeHTML(option.sheet)}"
+                    >
+                      ${escapeHTML(option.label)}
+                    </button>
+                  `
+                ).join('')}
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `).join('')}
     </div>
-  `).join('');
+  `;
 }
 
 function setupRetentionControls(showRow) {

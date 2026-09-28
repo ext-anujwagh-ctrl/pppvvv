@@ -147,29 +147,47 @@ const SHOW_LENGTH_BUCKETS = [
   '100+'
 ];
 
-const RETENTION_VIEW_GROUPS = [
+const RETENTION_VIEW_SECTIONS = [
   {
-    label: 'Normalised retention',
-    options: [
-      { label: 'Total', sheet: 'normalised overall' },
-      { label: 'US', sheet: 'normalised US' }
+    label: '1 Version: Nml (Entire cohort)',
+    rows: [
+      {
+        label: 'Overall',
+        options: [
+          { label: 'Overall', sheet: 'normalised overall' },
+          { label: 'Male', sheet: 'normalised male' },
+          { label: 'Female', sheet: 'normalised female' }
+        ]
+      },
+      {
+        label: 'US',
+        options: [
+          { label: 'Overall', sheet: 'normalised US' },
+          { label: 'Male', disabled: true },
+          { label: 'Female', disabled: true }
+        ]
+      }
     ]
   },
   {
-    label: 'Gender',
-    options: [
-      { label: 'All', sheet: 'normalised overall' },
-      { label: 'Female', sheet: 'normalised female' },
-      { label: 'Male', sheet: 'normalised male' }
-    ]
-  },
-  {
-    label: 'Whale+',
-    options: [
-      { label: 'Whale Overall', sheet: 'Whale+ Overall' },
-      { label: 'Whale Female', sheet: 'Whale+ Female' },
-      { label: 'Whale Male', sheet: 'Whale+ Male' },
-      { label: 'Whale US', sheet: 'Whale+ US' }
+    label: '1 Version: W+',
+    rows: [
+      {
+        label: 'Overall',
+        options: [
+          { label: 'Overall', sheet: 'Whale+ Overall' },
+          { label: 'Male', sheet: 'Whale+ Male' },
+          { label: 'Female', sheet: 'Whale+ Female' }
+        ]
+      },
+      {
+        label: 'US',
+        options: [
+          { label: 'Overall', sheet: 'Whale+ US' },
+          { label: 'Male', disabled: true },
+          { label: 'Female', disabled: true }
+        ]
+      }
     ]
   }
 ];
