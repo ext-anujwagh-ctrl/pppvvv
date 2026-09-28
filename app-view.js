@@ -1271,17 +1271,16 @@ function renderShowReport() {
 
 function downloadShowReport() {
   const input = $('reportShowId');
-  const status = $('reportStatus');
   const row = reportRowByInput(input?.value || '');
   const PDF = window.jspdf?.jsPDF;
 
   if (!row) {
-    if (status) status.textContent = 'Enter a valid Show ID or show title.';
+    window.alert('Enter a valid Show ID or show title.');
     return;
   }
 
   if (!PDF) {
-    if (status) status.textContent = 'PDF download is unavailable. Please reload the dashboard.';
+    window.alert('PDF download is unavailable. Please reload the dashboard.');
     return;
   }
 
@@ -1335,8 +1334,6 @@ function downloadShowReport() {
 
   const filename = `${reportTitle(row).replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'show'}-report.pdf`;
   doc.save(filename);
-  renderShowReport();
-  if (status) status.textContent = `PDF downloaded for ${reportTitle(row)}.`;
 }
 
 function comparisonChartOptions() {
