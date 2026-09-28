@@ -126,8 +126,7 @@ tbody tr:hover { background: #171a20; }
 .column-option small { margin-left: auto; color: var(--muted); font-size: 9px; letter-spacing: .06em; text-transform: uppercase; }
 .modal-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 17px; border-top: 1px solid var(--line); margin-top: 17px; }
 .details-content { display: flex; flex-direction: column; gap: 22px; }
-.retention-action-card { display: flex; align-items: center; gap: 12px; padding: 13px 15px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-raised); }
-.retention-status { color: var(--muted); font-size: 11px; }
+.retention-action-card { display: flex; align-items: center; padding: 13px 15px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-raised); }
 .retention-chart-section { display: flex; flex-direction: column; gap: 12px; padding: 15px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-raised); }
 .retention-chart-section .detail-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .retention-chart-wrap { position: relative; height: 330px; min-height: 260px; }

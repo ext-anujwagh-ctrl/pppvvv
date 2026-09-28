@@ -358,7 +358,6 @@ function openDetails(row) {
       <button id="showRetentionChart" class="button button-primary" type="button">
         Normalised retention
       </button>
-      <span id="retentionStatus" class="retention-status"></span>
     </div>
     <section id="retentionChartSection" class="retention-chart-section hidden">
       <div class="detail-section-heading">
@@ -404,10 +403,9 @@ function retentionFieldEntries(row) {
 
 function renderRetentionChart(showRow) {
   const section = $('retentionChartSection');
-  const status = $('retentionStatus');
   const canvas = $('retentionChart');
 
-  if (!section || !status || !canvas) return;
+  if (!section || !canvas) return;
 
   const retentionRow = state.retentionRows.find(row =>
     row['Show ID'] === showRow['Show ID']
@@ -416,48 +414,77 @@ function renderRetentionChart(showRow) {
   section.classList.remove('hidden');
 
   if (!retentionRow) {
-    status.textContent = 'No retention data found for this show.';
     if (state.retentionChart) {
       state.retentionChart.destroy();
       state.retentionChart = null;
     }
+    section.classList.add('hidden');
     return;
   }
 
   const points = retentionFieldEntries(retentionRow);
 
   if (!points.length) {
-    status.textContent = 'No hourly retention values found.';
+    section.classList.add('hidden');
     return;
   }
-
-  status.textContent = `${points.length} retention points`;
 
   if (state.retentionChart) {
     state.retentionChart.destroy();
   }
 
   if (typeof Chart === 'undefined') {
-    status.textContent = 'Chart library could not be loaded.';
+    section.classList.add('hidden');
     return;
+  }
+
+  const genreKey = normalized(showRow['Genre']);
+  const benchmarkValues = NORMALISED_RETENTION_BENCHMARKS[genreKey];
+  const benchmarkByHour = new Map(
+    RETENTION_BENCHMARK_HOURS.map((hour, index) => [
+      hour,
+      benchmarkValues ? benchmarkValues[index] * 100 : null
+    ])
+  );
+
+  const benchmarkLabel = showRow['Genre']
+    ? `${showRow['Genre']} benchmark`
+    : 'Genre benchmark';
+
+  const datasets = [{
+    label: 'Normalised retention',
+    data: points.map(point => point.value),
+    borderColor: '#ff5964',
+    backgroundColor: 'rgba(255, 89, 100, .14)',
+    borderWidth: 2,
+    pointRadius: 2,
+    pointHoverRadius: 5,
+    fill: true,
+    tension: .25,
+    spanGaps: true
+  }];
+
+  if (benchmarkValues) {
+    datasets.push({
+      label: benchmarkLabel,
+      data: points.map(point => benchmarkByHour.get(point.hour)),
+      borderColor: '#f2f5f8',
+      backgroundColor: 'transparent',
+      borderWidth: 1.5,
+      borderDash: [6, 5],
+      pointRadius: 0,
+      pointHoverRadius: 4,
+      fill: false,
+      tension: .15,
+      spanGaps: true
+    });
   }
 
   state.retentionChart = new Chart(canvas, {
     type: 'line',
     data: {
       labels: points.map(point => `H${point.hour}`),
-      datasets: [{
-        label: 'Normalised retention',
-        data: points.map(point => point.value),
-        borderColor: '#ff5964',
-        backgroundColor: 'rgba(255, 89, 100, .14)',
-        borderWidth: 2,
-        pointRadius: 2,
-        pointHoverRadius: 5,
-        fill: true,
-        tension: .25,
-        spanGaps: true
-      }]
+      datasets
     },
     options: {
       responsive: true,
@@ -468,7 +495,16 @@ function renderRetentionChart(showRow) {
       },
       plugins: {
         legend: {
-          display: false
+          display: datasets.length > 1,
+          position: 'bottom',
+          labels: {
+            color: '#b7c0ce',
+            font: {
+              size: 10
+            },
+            boxWidth: 18,
+            padding: 10
+          }
         },
         tooltip: {
           callbacks: {
