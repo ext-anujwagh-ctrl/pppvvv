@@ -300,6 +300,7 @@ function cleanDetailValue(value) {
 function openDetails(row) {
   $('detailsTitle').textContent =
     row['Show Title'] || 'Show details';
+  $('detailsShowId').textContent = row['Show ID'] || '-';
 
   const detailFields = new Set(
     DETAIL_HEADERS.filter(
