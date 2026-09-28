@@ -404,7 +404,7 @@ const RETENTION_VALUE_LABELS_PLUGIN = {
   id: 'retentionValueLabels',
 
   afterDatasetsDraw(chart) {
-    const targetHours = new Set([5, 10, 30, 50, 100, 120, 150]);
+    const targetHours = new Set([5, 10, 50, 100]);
     const labels = chart.data.labels || [];
 
     const context = chart.ctx;
