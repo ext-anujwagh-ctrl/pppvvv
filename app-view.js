@@ -777,19 +777,32 @@ function renderComparison() {
   const averageOne = average(pointsOne);
   const averageTwo = average(pointsTwo);
   const averageDifference = averageOne - averageTwo;
-  const latestHour = Math.max(
-    pointsOne.at(-1)?.hour ?? 0,
-    pointsTwo.at(-1)?.hour ?? 0
-  );
-  const latestOne = pointMapOne.get(latestHour);
-  const latestTwo = pointMapTwo.get(latestHour);
   const differenceText = `${Math.abs(averageDifference).toFixed(1)} percentage points ${averageDifference >= 0 ? 'higher' : 'lower'}`;
+
+  const firstBelowBenchmark = (row, points) => {
+    const benchmarkRow = dataset.benchmarks?.[normalized(row['Genre'])];
+    if (!benchmarkRow) return null;
+
+    const benchmarkByHour = new Map(
+      retentionFieldEntries(benchmarkRow).map(point => [point.hour, point.value])
+    );
+
+    return points.find(point => {
+      const benchmark = benchmarkByHour.get(point.hour);
+      return Number.isFinite(benchmark) && point.value < benchmark;
+    });
+  };
+
+  const belowBenchmarkText = (row, points) => {
+    const firstPoint = firstBelowBenchmark(row, points);
+    return firstPoint
+      ? `H${firstPoint.hour} (${firstPoint.value.toFixed(1)}% vs benchmark)`
+      : 'not reached in available hours';
+  };
 
   analysis.textContent = [
     `${rowOne['Show Title'] || showIdOne} averages ${averageOne.toFixed(1)}% versus ${rowTwo['Show Title'] || showIdTwo} at ${averageTwo.toFixed(1)}% (${differenceText}).`,
-    Number.isFinite(latestOne) && Number.isFinite(latestTwo)
-      ? `At H${latestHour}, retention is ${latestOne.toFixed(1)}% versus ${latestTwo.toFixed(1)}%.`
-      : 'The latest available hour is present for only one of the selected shows.'
+    `First below benchmark: ${rowOne['Show Title'] || showIdOne} at ${belowBenchmarkText(rowOne, pointsOne)}; ${rowTwo['Show Title'] || showIdTwo} at ${belowBenchmarkText(rowTwo, pointsTwo)}.`
   ].join('\n');
 
   const hours = [...new Set([
