@@ -365,5 +365,5 @@ tbody tr:hover { background: #182535; }
 .identity-id code { color: var(--accent); font-family: 'IBM Plex Mono', monospace; }
 .details-identity { border-color: var(--line); background: var(--surface-raised); }
 .detail-section-heading, .detail-card, .modal-footer, .export-actions { border-color: var(--line); }
-.detail-value, .detail-card.full .detail-value { color: var(--text); }
+.detail-value, .detail-card.full .detail-value { color: var(--text-soft); }
 .detail-label { color: #fff; }
