@@ -351,6 +351,7 @@ function openDetails(row) {
           <span class="eyebrow">RETENTION PERFORMANCE</span>
           <strong>Normalised retention</strong>
         </div>
+        <div id="retentionControls" class="retention-controls"></div>
         <div class="retention-chart-wrap">
           <canvas id="retentionChart"></canvas>
         </div>
@@ -370,6 +371,10 @@ function openDetails(row) {
   `;
 
   $('detailsModal').classList.remove('hidden');
+  state.retentionView = state.retentionView === 'ppv benchmarks'
+    ? 'normalised overall'
+    : state.retentionView;
+  setupRetentionControls(row);
   renderRetentionCharts(row);
 }
 
@@ -483,10 +488,6 @@ function retentionControlMarkup() {
   const normalisedSections = RETENTION_VIEW_SECTIONS.filter(section =>
     section.label !== 'PPV Benchmarks'
   );
-  const ppvSection = RETENTION_VIEW_SECTIONS.find(section =>
-    section.label === 'PPV Benchmarks'
-  );
-  const isPPV = state.retentionView === 'ppv benchmarks';
 
   const renderNormalisedSection = section => `
     <div class="retention-pill-section">
@@ -531,17 +532,9 @@ function retentionControlMarkup() {
   `;
 
   return `
-    <div class="retention-type-switcher">
-      <button class="retention-type-option ${!isPPV ? 'active' : ''}" type="button" data-retention-type="normalised">Normalised retention</button>
-      <button class="retention-type-option ${isPPV ? 'active' : ''}" type="button" data-retention-type="ppv">PPV Benchmarks</button>
+    <div class="retention-pill-layout retention-normalised-controls">
+      ${normalisedSections.map(renderNormalisedSection).join('')}
     </div>
-    ${isPPV
-      ? ''
-      : `
-        <div class="retention-pill-layout retention-normalised-controls">
-          ${normalisedSections.map(renderNormalisedSection).join('')}
-        </div>
-      `}
   `;
 }
 
@@ -557,25 +550,22 @@ function setupRetentionControls(showRow) {
       button.addEventListener('click', () => {
         state.retentionView = button.dataset.retentionSheet;
         setupRetentionControls(showRow);
-        renderRetentionChart(showRow);
-      });
-    });
-
-  container
-    .querySelectorAll('[data-retention-type]')
-    .forEach(button => {
-      button.addEventListener('click', () => {
-        state.retentionView = button.dataset.retentionType === 'ppv'
-          ? 'ppv benchmarks'
-          : 'normalised overall';
-        setupRetentionControls(showRow);
-        renderRetentionChart(showRow);
+        renderRetentionChart(
+          showRow,
+          state.retentionView,
+          'retentionChart',
+          'retentionChartSection'
+        );
       });
     });
 }
 
 function renderRetentionCharts(showRow) {
-  renderRetentionChart(showRow, 'normalised overall', 'retentionChart', 'retentionChartSection');
+  const normalisedView = state.retentionView === 'ppv benchmarks'
+    ? 'normalised overall'
+    : state.retentionView;
+
+  renderRetentionChart(showRow, normalisedView, 'retentionChart', 'retentionChartSection');
   renderRetentionChart(showRow, 'ppv benchmarks', 'ppvRetentionChart', 'ppvRetentionChartSection');
 }
 
