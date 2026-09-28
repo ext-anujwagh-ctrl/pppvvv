@@ -105,7 +105,7 @@ function operationalCell(field, row) {
   if (field === 'Active/Inactive') return statusTag(row[field]);
   if (field === 'Priority') return priorityTag(row[field]);
 
-  return escapeHTML(row[field] || '—');
+  return escapeHTML(row[field] || 'â€”');
 }
 
 function setupOperationalColumns() {
@@ -167,11 +167,11 @@ function tag(value) {
 
   return value
     ? `<span class="tag">${escapeHTML(displayValue)}</span>`
-    : '—';
+    : 'â€”';
 }
 
 function statusTag(value) {
-  if (!value) return '—';
+  if (!value) return 'â€”';
 
   const className = isYes(value)
     ? 'tag-green'
@@ -185,7 +185,7 @@ function statusTag(value) {
 }
 
 function priorityTag(value) {
-  if (!value) return '—';
+  if (!value) return 'â€”';
 
   const normalizedValue = normalized(value);
 
@@ -290,10 +290,19 @@ function detailCard(header, value) {
         ${escapeHTML(header)}
       </span>
       <div class="detail-value">
-        ${escapeHTML(value)}
+        ${escapeHTML(cleanDetailValue(value))}
       </div>
     </div>
   `;
+}
+
+function cleanDetailValue(value) {
+  return String(value ?? '')
+    .replace(/\r\n/g, '\n')
+    .split('\n')
+    .map(line => line.trim())
+    .join('\n')
+    .trim();
 }
 
 function openDetails(row) {
@@ -392,6 +401,51 @@ function retentionFieldEntries(row) {
     .sort((a, b) => a.hour - b.hour);
 }
 
+const RETENTION_VALUE_LABELS_PLUGIN = {
+  id: 'retentionValueLabels',
+
+  afterDatasetsDraw(chart) {
+    const targetHours = new Set([10, 20, 50, 100]);
+    const labels = chart.data.labels || [];
+
+    const context = chart.ctx;
+    context.save();
+    context.font = '600 10px Inter, sans-serif';
+    context.textAlign = 'center';
+    context.textBaseline = 'bottom';
+
+    chart.data.datasets.slice(0, 2).forEach((dataset, datasetIndex) => {
+      const meta = chart.getDatasetMeta(datasetIndex);
+      if (!dataset || !meta) return;
+
+      meta.data.forEach((point, index) => {
+        const hourMatch = String(labels[index]).match(/^H(\d+)$/);
+        const value = Number(dataset.data[index]);
+
+        if (!hourMatch || !targetHours.has(Number(hourMatch[1])) || !Number.isFinite(value)) {
+          return;
+        }
+
+        context.fillStyle = datasetIndex === 0
+          ? '#b8f5c8'
+          : '#f2f5f8';
+
+        const valueLabel = datasetIndex === 0
+          ? `Actual - ${value.toFixed(1)}%`
+          : `BM - ${value.toFixed(1)}%`;
+
+        context.fillText(
+          valueLabel,
+          point.x,
+          point.y + (datasetIndex === 0 ? -9 : 16)
+        );
+      });
+    });
+
+    context.restore();
+  }
+};
+
 function retentionControlMarkup() {
   return `
     <div class="retention-selector-grid">
@@ -409,7 +463,7 @@ function retentionControlMarkup() {
               <div class="retention-selector-row">
                 <span class="retention-selector-locale">${escapeHTML(row.label)}</span>
                 ${row.options.map(option => option.disabled
-                  ? '<button class="retention-control-option" type="button" disabled>—</button>'
+                  ? '<button class="retention-control-option" type="button" disabled>â€”</button>'
                   : `
                     <button
                       class="retention-control-option ${state.retentionView === option.sheet ? 'active' : ''}"
@@ -501,8 +555,8 @@ function renderRetentionChart(showRow) {
   const datasets = [{
     label: 'Normalised retention',
     data: points.map(point => point.value),
-    borderColor: '#ff5964',
-    backgroundColor: 'rgba(255, 89, 100, .14)',
+    borderColor: '#8ee6a8',
+    backgroundColor: 'rgba(142, 230, 168, .14)',
     borderWidth: 2,
     pointRadius: 2,
     pointHoverRadius: 5,
@@ -541,6 +595,7 @@ function renderRetentionChart(showRow) {
         mode: 'index'
       },
       plugins: {
+        retentionValueLabels: {},
         legend: {
           display: datasets.length > 1,
           position: 'bottom',
@@ -582,7 +637,8 @@ function renderRetentionChart(showRow) {
           }
         }
       }
-    }
+    },
+    plugins: [RETENTION_VALUE_LABELS_PLUGIN]
   });
 }
 
@@ -593,7 +649,7 @@ function allRetentionOptions() {
         .filter(option => !option.disabled)
         .map(option => ({
           ...option,
-          label: `${section.label.replace(/^1 Version: /, '')} · ${row.label} · ${option.label}`
+          label: `${section.label.replace(/^1 Version: /, '')} Â· ${row.label} Â· ${option.label}`
         }))
     )
   ).filter((option, index, options) =>
