@@ -569,13 +569,27 @@ function renderRetentionCharts(showRow) {
   renderRetentionChart(showRow, 'ppv benchmarks', 'ppvRetentionChart', 'ppvRetentionChartSection');
 }
 
+function retentionDatasetForView(viewKey) {
+  if (state.retentionDatasets[viewKey]) {
+    return state.retentionDatasets[viewKey];
+  }
+
+  const matchingKey = Object.keys(state.retentionDatasets).find(key =>
+    normalized(key) === normalized(viewKey)
+  );
+
+  return matchingKey
+    ? state.retentionDatasets[matchingKey]
+    : null;
+}
+
 function renderRetentionChart(showRow, viewKey, canvasId, sectionId) {
   const section = $(sectionId);
   const canvas = $(canvasId);
 
   if (!section || !canvas) return;
 
-  const dataset = state.retentionDatasets[viewKey];
+  const dataset = retentionDatasetForView(viewKey);
   const retentionRow = dataset?.rows.find(row =>
     row['Show ID'] === showRow['Show ID']
   );
