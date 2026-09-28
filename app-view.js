@@ -409,6 +409,12 @@ function retentionControlMarkup() {
         <div class="retention-selector-section">
           <div class="retention-selector-title">${escapeHTML(section.label)}</div>
           <div class="retention-selector-table">
+            <div class="retention-selector-row retention-selector-gender-row">
+              <span></span>
+              <span class="retention-selector-gender-label">Gender</span>
+              <span></span>
+              <span></span>
+            </div>
             <div class="retention-selector-row retention-selector-header">
               <span>Locale / Gender</span>
               <span>Overall</span>

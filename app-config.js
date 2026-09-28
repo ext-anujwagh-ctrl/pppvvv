@@ -149,7 +149,7 @@ const SHOW_LENGTH_BUCKETS = [
 
 const RETENTION_VIEW_SECTIONS = [
   {
-    label: '1 Version: Nml (Entire cohort)',
+    label: 'Normalised View',
     rows: [
       {
         label: 'Overall',
@@ -170,7 +170,7 @@ const RETENTION_VIEW_SECTIONS = [
     ]
   },
   {
-    label: '1 Version: W+',
+    label: 'Whale+ View',
     rows: [
       {
         label: 'Overall',

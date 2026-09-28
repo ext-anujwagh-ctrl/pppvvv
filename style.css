@@ -140,6 +140,8 @@ tbody tr:hover { background: #171a20; }
 .retention-selector-row > span, .retention-selector-row > button { min-width: 0; padding: 7px 6px; }
 .retention-selector-row > span { display: flex; align-items: center; color: var(--muted); font-size: 10px; }
 .retention-selector-header > span { color: #fff; background: rgba(255, 255, 255, .04); font-weight: 700; }
+.retention-selector-gender-row > span { min-height: 22px; padding-top: 4px; padding-bottom: 4px; background: rgba(255, 255, 255, .025); }
+.retention-selector-gender-label { grid-column: 2 / span 3; justify-content: center; color: var(--muted) !important; font-size: 9px !important; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
 .retention-selector-locale { color: #fff !important; font-weight: 700; }
 .retention-control-option { min-height: 29px; border: 0; border-left: 1px solid var(--line); color: var(--muted); background: transparent; font: inherit; font-size: 10px; cursor: pointer; }
 .retention-control-option:hover, .retention-control-option.active { color: #fff; background: rgba(255, 89, 100, .16); }
