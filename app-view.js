@@ -382,7 +382,7 @@ function openDetails(row) {
 }
 
 function retentionFieldEntries(row) {
-  return Object.keys(row)
+  return Object.keys(row || {})
     .map(field => {
       const match = field.match(/^H(\d+) Ret% Nth TD$/i);
 
@@ -838,7 +838,7 @@ function allRetentionOptions() {
         .filter(option => !option.disabled)
         .map(option => ({
           ...option,
-          label: `${section.label.replace(/^1 Version: /, '')} Â· ${row.label} Â· ${option.label}`
+          label: `${section.label.replace(/^1 Version: /, '')} · ${row.label} · ${option.label}`
         }))
     )
   ).filter((option, index, options) =>
@@ -877,13 +877,25 @@ function compareRowById(dataset, showId) {
   );
 }
 
+function operationalRowByInput(value) {
+  const target = normalized(value);
+  return state.allRows.find(row =>
+    normalized(row['Show ID']) === target ||
+    normalized(row['Show Title']) === target
+  );
+}
+
 const COMPARER_METRICS = [
   ['Activity Days (L30D)', 'L30 activity'],
   ['Throughput (L30D)', 'Throughput'],
+  ['Total Throughput (L30D)', 'Total throughput'],
   ['Overall Editorial conviction', 'Editorial conviction'],
+  ['Subjective Conviction', 'Subjective conviction'],
   ['Show Length', 'Show length'],
   ['Genre', 'Genre'],
-  ['Priority', 'Priority']
+  ['Category', 'Category'],
+  ['Priority', 'Priority'],
+  ['PPV Tag', 'PPV tag']
 ];
 
 function displayMetricValue(value) {
@@ -966,13 +978,22 @@ function renderComparison() {
   }
 
   status.textContent = `${rowOne['Show Title'] || showIdOne} vs ${rowTwo['Show Title'] || showIdTwo}`;
-  renderComparerMetrics(rowOne, rowTwo);
+  renderComparerMetrics(
+    operationalRowByInput(showIdOne) || rowOne,
+    operationalRowByInput(showIdTwo) || rowTwo
+  );
 
-  const average = points => points.reduce((sum, point) => sum + point.value, 0) / points.length;
+  const average = points => points.length
+    ? points.reduce((sum, point) => sum + point.value, 0) / points.length
+    : null;
   const averageOne = average(pointsOne);
   const averageTwo = average(pointsTwo);
-  const averageDifference = averageOne - averageTwo;
-  const differenceText = `${Math.abs(averageDifference).toFixed(1)} percentage points ${averageDifference >= 0 ? 'higher' : 'lower'}`;
+  const averageDifference = averageOne !== null && averageTwo !== null
+    ? averageOne - averageTwo
+    : null;
+  const differenceText = averageDifference === null
+    ? 'not available'
+    : `${Math.abs(averageDifference).toFixed(1)} percentage points ${averageDifference >= 0 ? 'higher' : 'lower'}`;
 
   const firstBelowBenchmark = (row, points) => {
     const benchmarkRow = dataset.isPPVBenchmark
@@ -1000,7 +1021,7 @@ function renderComparison() {
   };
 
   analysis.textContent = [
-    `${rowOne['Show Title'] || showIdOne} averages ${averageOne.toFixed(1)}% versus ${rowTwo['Show Title'] || showIdTwo} at ${averageTwo.toFixed(1)}% (${differenceText}).`,
+    `${rowOne['Show Title'] || showIdOne} averages ${averageOne === null ? '-' : `${averageOne.toFixed(1)}%`} versus ${rowTwo['Show Title'] || showIdTwo} at ${averageTwo === null ? '-' : `${averageTwo.toFixed(1)}%`} (${differenceText}).`,
     `First below benchmark: ${rowOne['Show Title'] || showIdOne} at ${belowBenchmarkText(rowOne, pointsOne)}; ${rowTwo['Show Title'] || showIdTwo} at ${belowBenchmarkText(rowTwo, pointsTwo)}.`
   ].join('\n');
 
@@ -1084,6 +1105,18 @@ function renderShowReport() {
     ['Author Locale', 'Author locale']
   ];
 
+  const normalisedDataset = retentionDatasetForView('normalised overall');
+  const normalisedRow = compareRowById(normalisedDataset, row['Show ID']);
+  const normalisedPoints = retentionFieldEntries(normalisedRow);
+  const ppvDataset = retentionDatasetForView('ppv benchmarks');
+  const ppvShow = ppvDataset?.rows.find(item =>
+    normalized(item['Show ID']) === normalized(row['Show ID'])
+  );
+  const ppvRow = ppvDataset?.cohortRows?.[
+    `${row['Show ID']}|${ppvShow?.['PPV Max Hour']}`
+  ];
+  const ppvPoints = retentionFieldEntries(ppvRow);
+
   output.innerHTML = `
     <div class="report-header">
       <div>
@@ -1102,8 +1135,13 @@ function renderShowReport() {
       `).join('')}
     </div>
     <div class="report-notes">
-      <span>Editorial comments</span>
+      <span>Normalised retention</span>
+      <p>${escapeHTML(normalisedPoints.length ? normalisedPoints.map(point => `H${point.hour}: ${point.value.toFixed(1)}%`).join(' · ') : '-')}</p>
+      <span>PPV benchmark retention</span>
+      <p>${escapeHTML(ppvPoints.length ? `H${ppvRow['PPV Max Hour']} cohort · ${ppvPoints.map(point => `H${point.hour}: ${point.value.toFixed(1)}%`).join(' · ')}` : '-')}</p>
+      <span>Editorial comments · Writer POV</span>
       <p>${escapeHTML(reportValue(row, 'Editorial Comments (Writer POV)'))}</p>
+      <span>Editorial comments · Story POV</span>
       <p>${escapeHTML(reportValue(row, 'Editorial Comments (Story POV)'))}</p>
     </div>
   `;
