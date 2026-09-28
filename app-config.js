@@ -214,6 +214,7 @@ const state = {
   selectedColumns: [...CSV_HEADERS],
   exportMode: 'all',
   filters: {},
+  ppvMaxHour: null,
   charts: {},
   retentionChart: null,
   retentionCharts: {},

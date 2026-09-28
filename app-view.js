@@ -361,6 +361,8 @@ function openDetails(row) {
           <span class="eyebrow">RETENTION PERFORMANCE</span>
           <strong>PPV Benchmarks</strong>
         </div>
+        <div id="ppvRetentionControls" class="retention-controls"></div>
+        <p id="ppvRetentionMeta" class="retention-meta"></p>
         <div class="retention-chart-wrap">
           <canvas id="ppvRetentionChart"></canvas>
         </div>
@@ -371,10 +373,10 @@ function openDetails(row) {
   `;
 
   $('detailsModal').classList.remove('hidden');
-  state.retentionView = state.retentionView === 'ppv benchmarks'
-    ? 'normalised overall'
-    : state.retentionView;
+  state.retentionView = 'normalised overall';
+  state.ppvMaxHour = null;
   setupRetentionControls(row);
+  setupPPVControls(row);
   renderRetentionCharts(row);
 }
 
@@ -560,6 +562,70 @@ function setupRetentionControls(showRow) {
     });
 }
 
+function setupPPVControls(showRow) {
+  const container = $('ppvRetentionControls');
+  const dataset = retentionDatasetForView('ppv benchmarks');
+
+  if (!container || !dataset?.isPPVBenchmark) return;
+
+  const fallbackRow = dataset.rows.find(row =>
+    row['Show ID'] === showRow['Show ID']
+  );
+  const availableHours = dataset.cohortHours.filter(hour =>
+    dataset.cohortRows?.[`${showRow['Show ID']}|${hour}`]
+  );
+
+  if (state.ppvMaxHour === null) {
+    state.ppvMaxHour = fallbackRow?.['PPV Max Hour'] ?? availableHours.at(-1);
+  }
+
+  const cohortRow = dataset.cohortRows?.[
+    `${showRow['Show ID']}|${state.ppvMaxHour}`
+  ];
+  const meta = $('ppvRetentionMeta');
+  if (meta) {
+    meta.textContent = cohortRow
+      ? `H${state.ppvMaxHour} cohort · H10 LDAU: ${cohortRow['H10 LDAU'] || '-'}`
+      : 'No PPV benchmark data for this show.';
+  }
+
+  container.innerHTML = `
+    <div class="retention-pill-selector">
+      <span>Max hour</span>
+      <div class="retention-pill-group">
+        ${dataset.cohortHours.map(hour => {
+          const available = availableHours.includes(hour);
+          return `
+            <button
+              class="retention-control-option ${state.ppvMaxHour === hour ? 'active' : ''}"
+              type="button"
+              data-ppv-max-hour="${hour}"
+              ${available ? '' : 'disabled'}
+            >
+              H${hour}
+            </button>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+
+  container
+    .querySelectorAll('[data-ppv-max-hour]')
+    .forEach(button => {
+      button.addEventListener('click', () => {
+        state.ppvMaxHour = Number(button.dataset.ppvMaxHour);
+        setupPPVControls(showRow);
+        renderRetentionChart(
+          showRow,
+          'ppv benchmarks',
+          'ppvRetentionChart',
+          'ppvRetentionChartSection'
+        );
+      });
+    });
+}
+
 function renderRetentionCharts(showRow) {
   const normalisedView = state.retentionView === 'ppv benchmarks'
     ? 'normalised overall'
@@ -590,9 +656,11 @@ function renderRetentionChart(showRow, viewKey, canvasId, sectionId) {
   if (!section || !canvas) return;
 
   const dataset = retentionDatasetForView(viewKey);
-  const retentionRow = dataset?.rows.find(row =>
-    row['Show ID'] === showRow['Show ID']
-  );
+  const retentionRow = dataset?.isPPVBenchmark
+    ? dataset.cohortRows?.[
+        `${showRow['Show ID']}|${state.ppvMaxHour}`
+      ] || dataset.rows.find(row => row['Show ID'] === showRow['Show ID'])
+    : dataset?.rows.find(row => row['Show ID'] === showRow['Show ID']);
 
   section.classList.remove('hidden');
 

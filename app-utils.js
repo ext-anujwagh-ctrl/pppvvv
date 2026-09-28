@@ -151,6 +151,17 @@ function parsePPVBenchmarkCSV(text) {
   const canonicalRow = (values, cohortMaxHour) => {
     const row = {};
 
+    const ldauColumn = headers
+      .map((header, index) => ({ header, index }))
+      .find(column =>
+        column.header.match(/^H10_LDAU$/i) &&
+        Number(maxHourRow[column.index]) === cohortMaxHour
+      );
+
+    if (ldauColumn) {
+      row['H10 LDAU'] = values[ldauColumn.index] ?? '';
+    }
+
     retentionColumns
       .filter(column => Number(maxHourRow[column.index]) === cohortMaxHour)
       .forEach(column => {
@@ -179,23 +190,47 @@ function parsePPVBenchmarkCSV(text) {
     Object.assign(benchmarkRows, benchmarkByCohort);
   });
 
+  const cohortHours = [...new Set(
+    retentionColumns.map(column => Number(maxHourRow[column.index]))
+  )]
+    .filter(Number.isFinite)
+    .sort((a, b) => a - b);
+  const cohortRows = {};
+
   const rows = matrix
     .slice(headerIndex + 1)
     .map(values => {
-      const populatedRetentionColumns = retentionColumns.filter(column =>
-        String(values[column.index] ?? '').trim() !== ''
-      );
-      const lastRetentionColumn = populatedRetentionColumns.at(-1);
-      const maxHour = lastRetentionColumn
-        ? Number(maxHourRow[lastRetentionColumn.index])
-        : null;
+      const showId = String(values[0] || '').trim();
+      const showTitle = String(values[1] || '').trim();
+      const genre = String(values[2] || '').trim();
+      let lastCohort = null;
 
-      return {
-        'Show ID': String(values[0] || '').trim(),
-        'Show Title': String(values[1] || '').trim(),
-        Genre: String(values[2] || '').trim(),
-        'PPV Max Hour': maxHour,
-        ...(maxHour ? canonicalRow(values, maxHour) : {})
+      cohortHours.forEach(cohortMaxHour => {
+        const cohortColumns = retentionColumns.filter(column =>
+          Number(maxHourRow[column.index]) === cohortMaxHour
+        );
+        const hasData = cohortColumns.some(column =>
+          String(values[column.index] ?? '').trim() !== ''
+        );
+
+        if (!hasData) return;
+
+        lastCohort = cohortMaxHour;
+        cohortRows[`${showId}|${cohortMaxHour}`] = {
+          'Show ID': showId,
+          'Show Title': showTitle,
+          Genre: genre,
+          'PPV Max Hour': cohortMaxHour,
+          ...canonicalRow(values, cohortMaxHour)
+        };
+      });
+
+      const row = cohortRows[`${showId}|${lastCohort}`];
+      return row || {
+        'Show ID': showId,
+        'Show Title': showTitle,
+        Genre: genre,
+        'PPV Max Hour': null
       };
     })
     .filter(row => row['Show ID']);
@@ -204,6 +239,8 @@ function parsePPVBenchmarkCSV(text) {
     rows,
     benchmarks: {},
     cohortBenchmarks: benchmarkRows,
+    cohortRows,
+    cohortHours,
     isPPVBenchmark: true
   };
 }
