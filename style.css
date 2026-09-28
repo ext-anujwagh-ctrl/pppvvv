@@ -179,7 +179,7 @@ tbody tr:hover { background: #171a20; }
 .detail-section:nth-of-type(-n + 3) .detail-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: 22px; }
 .detail-card { display: block; min-width: 0; padding: 11px 0; border-bottom: 1px solid var(--line-soft); }
 .detail-card.full { grid-column: 1 / -1; padding-top: 13px; }
-.detail-label { display: block; color: var(--muted); font-size: 11px; line-height: 1.35; }
+.detail-label { display: block; color: #fff; font-size: 11px; font-weight: 700; line-height: 1.35; }
 .detail-value { min-width: 0; margin-top: 5px; color: #edf1f7; font-size: 13px; line-height: 1.5; white-space: pre-wrap; }
 .detail-card.full .detail-value { color: var(--text-soft); line-height: 1.6; }
 
