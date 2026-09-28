@@ -109,7 +109,11 @@ function parseRetentionWorkbook(workbook) {
       ))
       .filter(row => row['Show ID']);
 
-    datasets[sheetName] = {
+    const datasetKey = normalized(sheetName).replace(/\s+/g, ' ');
+
+    datasets[datasetKey] = {
+      key: datasetKey,
+      sourceSheet: sheetName,
       rows,
       benchmarks: benchmarkRows
     };

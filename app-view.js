@@ -636,12 +636,9 @@ function renderRetentionCharts(showRow) {
 }
 
 function retentionDatasetForView(viewKey) {
-  if (state.retentionDatasets[viewKey]) {
-    return state.retentionDatasets[viewKey];
-  }
-
+  const requestedKey = normalized(viewKey).replace(/\s+/g, ' ');
   const matchingKey = Object.keys(state.retentionDatasets).find(key =>
-    normalized(key) === normalized(viewKey)
+    normalized(key).replace(/\s+/g, ' ') === requestedKey
   );
 
   return matchingKey
@@ -855,7 +852,7 @@ function renderComparison() {
 
   const showIdOne = $('compareShowIdOne').value.trim();
   const showIdTwo = $('compareShowIdTwo').value.trim();
-  const dataset = state.retentionDatasets[typeSelect.value];
+  const dataset = retentionDatasetForView(typeSelect.value);
   const rowOne = compareRowById(dataset, showIdOne);
   const rowTwo = compareRowById(dataset, showIdTwo);
 
