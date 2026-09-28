@@ -12,7 +12,7 @@
     <header class="topbar">
       <div>
         <p class="eyebrow">POCKETFM · GROWTH TRACKER</p>
-        <h1>P3 &amp; PPV Shows Dashboard</h1>
+        <h1>P3 &amp; PPV Shows Slate</h1>
       </div>
 
       <div class="topbar-actions">
@@ -168,16 +168,25 @@
         </div>
       </section>
 
-      <section class="workspace-card comparer-card">
+      <section class="workspace-card tools-card">
         <div class="section-heading">
           <div>
-            <p class="eyebrow">RETENTION COMPARISON</p>
-            <h2>Comparer</h2>
+            <p class="eyebrow">TOOLS</p>
+            <h2>Tools</h2>
           </div>
-          <span class="comparer-copy">Compare two shows across any retention view.</span>
+          <span class="comparer-copy">Compare shows and generate show reports.</span>
         </div>
 
-        <div class="comparer-controls">
+        <div class="tool-card comparer-card">
+          <div class="tool-heading">
+            <div>
+              <p class="eyebrow">RETENTION COMPARISON</p>
+              <h3>Comparer</h3>
+            </div>
+            <span class="comparer-copy">Compare two shows across any retention view.</span>
+          </div>
+
+          <div class="comparer-controls">
           <label class="comparer-field">
             <span>Show Title / Show ID 1</span>
             <input id="compareShowIdOne" type="text" list="compareShowIds" placeholder="Enter" />
@@ -193,15 +202,39 @@
             <select id="compareRetentionType"></select>
           </label>
 
+          </div>
+
+          <datalist id="compareShowIds"></datalist>
+
+          <p id="comparerStatus" class="comparer-status"></p>
+          <div class="comparer-result-grid">
+            <div class="comparer-chart-wrap">
+              <canvas id="comparerChart"></canvas>
+            </div>
+            <div id="comparerMetrics" class="comparer-metrics"></div>
+          </div>
+          <p id="comparerAnalysis" class="comparer-analysis"></p>
         </div>
 
-        <datalist id="compareShowIds"></datalist>
-
-        <p id="comparerStatus" class="comparer-status"></p>
-        <p id="comparerAnalysis" class="comparer-analysis"></p>
-
-        <div class="comparer-chart-wrap">
-          <canvas id="comparerChart"></canvas>
+        <div class="tool-card report-card">
+          <div class="tool-heading">
+            <div>
+              <p class="eyebrow">SHOW REPORT</p>
+              <h3>Report Generator</h3>
+            </div>
+            <span class="comparer-copy">Generate a concise report for one show.</span>
+          </div>
+          <div class="report-controls">
+            <label class="comparer-field">
+              <span>Show Title / Show ID</span>
+              <input id="reportShowId" type="text" list="reportShowIds" placeholder="Enter" />
+            </label>
+            <button id="generateReport" class="button button-primary" type="button">Generate report</button>
+            <button id="printReport" class="button button-ghost hidden" type="button">Print report</button>
+          </div>
+          <datalist id="reportShowIds"></datalist>
+          <p id="reportStatus" class="comparer-status"></p>
+          <div id="reportOutput" class="report-output hidden"></div>
         </div>
       </section>
     </main>

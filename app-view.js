@@ -849,6 +849,7 @@ function allRetentionOptions() {
 function setupComparer() {
   const typeSelect = $('compareRetentionType');
   const datalist = $('compareShowIds');
+  const reportDatalist = $('reportShowIds');
 
   if (!typeSelect || !datalist) return;
 
@@ -861,14 +862,69 @@ function setupComparer() {
   datalist.innerHTML = state.allRows
     .map(row => `<option value="${escapeHTML(row['Show ID'])}">${escapeHTML(row['Show Title'])}</option>`)
     .join('');
+
+  if (reportDatalist) {
+    reportDatalist.innerHTML = datalist.innerHTML;
+  }
 }
 
 function compareRowById(dataset, showId) {
   const normalizedId = normalized(showId);
 
   return dataset?.rows.find(row =>
-    normalized(row['Show ID']) === normalizedId
+    normalized(row['Show ID']) === normalizedId ||
+    normalized(row['Show Title']) === normalizedId
   );
+}
+
+const COMPARER_METRICS = [
+  ['Activity Days (L30D)', 'L30 activity'],
+  ['Throughput (L30D)', 'Throughput'],
+  ['Overall Editorial conviction', 'Editorial conviction'],
+  ['Show Length', 'Show length'],
+  ['Genre', 'Genre'],
+  ['Priority', 'Priority']
+];
+
+function displayMetricValue(value) {
+  const cleaned = String(value ?? '').trim();
+  return cleaned || '-';
+}
+
+function renderComparerMetrics(rowOne, rowTwo) {
+  const container = $('comparerMetrics');
+  if (!container) return;
+
+  const titleOne = rowOne['Show Title'] || rowOne['Show ID'] || 'Show 1';
+  const titleTwo = rowTwo['Show Title'] || rowTwo['Show ID'] || 'Show 2';
+
+  container.innerHTML = `
+    <div class="metrics-heading">
+      <span>Show metric comparison</span>
+      <small>${escapeHTML(titleOne)} · ${escapeHTML(titleTwo)}</small>
+    </div>
+    <div class="metrics-table-wrap">
+      <table class="metrics-table">
+        <thead>
+          <tr><th>Metric</th><th>${escapeHTML(titleOne)}</th><th>${escapeHTML(titleTwo)}</th></tr>
+        </thead>
+        <tbody>
+          ${COMPARER_METRICS.map(([field, label]) => `
+            <tr>
+              <th>${escapeHTML(label)}</th>
+              <td>${escapeHTML(displayMetricValue(rowOne[field]))}</td>
+              <td>${escapeHTML(displayMetricValue(rowTwo[field]))}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function clearComparerMetrics() {
+  const container = $('comparerMetrics');
+  if (container) container.innerHTML = '';
 }
 
 function renderComparison() {
@@ -888,12 +944,14 @@ function renderComparison() {
   if (!showIdOne || !showIdTwo) {
     status.textContent = 'Enter two Show IDs to compare.';
     analysis.textContent = '';
+    clearComparerMetrics();
     return;
   }
 
   if (!dataset || !rowOne || !rowTwo) {
     status.textContent = 'One or both Show IDs were not found for this retention type.';
     analysis.textContent = '';
+    clearComparerMetrics();
     return;
   }
 
@@ -908,6 +966,7 @@ function renderComparison() {
   }
 
   status.textContent = `${rowOne['Show Title'] || showIdOne} vs ${rowTwo['Show Title'] || showIdTwo}`;
+  renderComparerMetrics(rowOne, rowTwo);
 
   const average = points => points.reduce((sum, point) => sum + point.value, 0) / points.length;
   const averageOne = average(pointsOne);
@@ -981,6 +1040,76 @@ function renderComparison() {
     },
     options: comparisonChartOptions()
   });
+}
+
+function reportRowByInput(value) {
+  const target = normalized(value);
+  return state.allRows.find(row =>
+    normalized(row['Show ID']) === target ||
+    normalized(row['Show Title']) === target
+  );
+}
+
+function reportValue(row, field) {
+  return displayMetricValue(row[field]);
+}
+
+function renderShowReport() {
+  const input = $('reportShowId');
+  const status = $('reportStatus');
+  const output = $('reportOutput');
+  const printButton = $('printReport');
+  if (!input || !status || !output) return;
+
+  const row = reportRowByInput(input.value);
+  if (!row) {
+    status.textContent = 'Enter a valid Show ID or show title.';
+    output.classList.add('hidden');
+    printButton?.classList.add('hidden');
+    return;
+  }
+
+  const reportFields = [
+    ['Show ID', 'Show ID'],
+    ['Genre', 'Genre'],
+    ['Show Length', 'Show length'],
+    ['Priority', 'Priority'],
+    ['PPV Tag', 'PPV tag'],
+    ['Activity Days (L30D)', 'L30 activity'],
+    ['Throughput (L30D)', 'Throughput'],
+    ['Overall Editorial conviction', 'Editorial conviction'],
+    ['Subjective Conviction', 'Subjective conviction'],
+    ['Editor', 'Editor'],
+    ['Author Name', 'Author'],
+    ['Author Locale', 'Author locale']
+  ];
+
+  output.innerHTML = `
+    <div class="report-header">
+      <div>
+        <p class="eyebrow">SHOW REPORT</p>
+        <h3>${escapeHTML(row['Show Title'] || 'Show')}</h3>
+        <span>${escapeHTML(row['Show ID'] || '-')}</span>
+      </div>
+      <span class="report-status-tag">${escapeHTML(row['Active/Inactive'] || '-')}</span>
+    </div>
+    <div class="report-grid">
+      ${reportFields.map(([field, label]) => `
+        <div class="report-item">
+          <span>${escapeHTML(label)}</span>
+          <strong>${escapeHTML(reportValue(row, field))}</strong>
+        </div>
+      `).join('')}
+    </div>
+    <div class="report-notes">
+      <span>Editorial comments</span>
+      <p>${escapeHTML(reportValue(row, 'Editorial Comments (Writer POV)'))}</p>
+      <p>${escapeHTML(reportValue(row, 'Editorial Comments (Story POV)'))}</p>
+    </div>
+  `;
+  output.classList.remove('hidden');
+  printButton?.classList.remove('hidden');
+  status.textContent = `Report generated for ${row['Show Title'] || row['Show ID']}.`;
 }
 
 function comparisonChartOptions() {
