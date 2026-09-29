@@ -157,8 +157,8 @@ tbody tr:hover { background: #171a20; }
 .retention-pill-section { min-width: 0; flex: 1 1 280px; }
 .retention-selector-title { margin-bottom: 6px; color: var(--muted); font-size: 9px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
 .retention-pill-selectors { display: flex; flex-wrap: wrap; gap: 8px; }
-.retention-pill-selector > span { display: block; margin: 0 0 4px 3px; color: var(--muted); font-size: 9px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
-.retention-pill-group { display: inline-flex; overflow: hidden; padding: 3px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255, 255, 255, .025); }
+.retention-pill-selector > span { display: block; min-height: 11px; margin: 0 0 4px 3px; color: var(--muted); font-size: 9px; font-weight: 700; letter-spacing: .04em; line-height: 11px; text-transform: uppercase; }
+.retention-pill-group { display: inline-flex; min-height: 44px; align-items: center; overflow: hidden; padding: 3px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255, 255, 255, .025); }
 .retention-control-option { min-height: 26px; padding: 6px 12px; border: 0; border-radius: 999px; color: var(--muted); background: transparent; font: inherit; font-size: 9px; cursor: pointer; }
 .retention-control-option:hover { color: #fff; background: rgba(166, 117, 255, .16); }
 .retention-control-option.active { color: #120d1c; background: var(--accent); box-shadow: none; font-weight: 700; }
