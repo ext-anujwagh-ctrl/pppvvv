@@ -353,6 +353,7 @@ function openDetails(row) {
           <strong>Normalised retention</strong>
         </div>
         <div id="retentionControls" class="retention-controls"></div>
+        <p id="retentionMeta" class="retention-meta"></p>
         <div class="retention-chart-wrap">
           <canvas id="retentionChart"></canvas>
         </div>
@@ -702,6 +703,14 @@ function renderRetentionChart(showRow, viewKey, canvasId, sectionId) {
   }
 
   const points = retentionFieldEntries(retentionRow);
+
+  if (!dataset.isPPVBenchmark) {
+    const meta = $('retentionMeta');
+    if (meta) {
+      const ldau = Number(retentionRow.LDAU);
+      meta.textContent = `LDAU: ${Number.isFinite(ldau) ? ldau.toLocaleString() : '-'}`;
+    }
+  }
 
   if (!points.length) {
     section.classList.add('hidden');

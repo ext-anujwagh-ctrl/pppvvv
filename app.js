@@ -8,10 +8,10 @@ function closeModals() {
 
 async function init() {
   try {
-    const response = await fetch('data.csv', { cache: 'no-store' });
+    const response = await fetch('operational-view.csv', { cache: 'no-store' });
 
     if (!response.ok) {
-      throw new Error('data.csv not found');
+      throw new Error('operational-view.csv not found');
     }
 
     const text = await response.text();
@@ -20,7 +20,7 @@ async function init() {
 
     try {
       const reportResponse = await fetch(
-        'contracted_titles_filtered_2026-09-28.csv',
+        'report-data.csv',
         { cache: 'no-store' }
       );
 
@@ -32,9 +32,9 @@ async function init() {
     }
 
     // Retention workbook is optional so the main dashboard can still load
-    // if data1.xlsx has not been added yet.
+    // if normalised-ret.xlsx has not been added yet.
     try {
-      const retentionResponse = await fetch('data1.xlsx', {
+      const retentionResponse = await fetch('normalised-ret.xlsx', {
         cache: 'no-store'
       });
 
@@ -51,11 +51,11 @@ async function init() {
         state.retentionDatasets = parseRetentionWorkbook(workbook);
       }
     } catch (retentionError) {
-      console.warn('Could not load data1.xlsx', retentionError);
+      console.warn('Could not load normalised-ret.xlsx', retentionError);
     }
 
     try {
-      const ppvResponse = await fetch('ppv-benchmarks.csv', {
+      const ppvResponse = await fetch('ppv.csv', {
         cache: 'no-store'
       });
 
@@ -64,7 +64,7 @@ async function init() {
           parsePPVBenchmarkCSV(await ppvResponse.text());
       }
     } catch (ppvError) {
-      console.warn('Could not load ppv-benchmarks.csv', ppvError);
+      console.warn('Could not load ppv.csv', ppvError);
     }
 
     $('dataStatus').textContent =
