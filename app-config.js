@@ -216,6 +216,7 @@ const state = {
   exportMode: 'all',
   filters: {},
   ppvMaxHour: null,
+  ppvView: 'graph',
   charts: {},
   retentionChart: null,
   retentionCharts: {},

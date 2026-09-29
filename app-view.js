@@ -371,6 +371,7 @@ function openDetails(row) {
         <div class="retention-chart-wrap">
           <canvas id="ppvRetentionChart"></canvas>
         </div>
+        <div id="ppvRetentionTable" class="hidden"></div>
       </article>
     </section>
     ${sections}
@@ -380,6 +381,7 @@ function openDetails(row) {
   $('detailsModal').classList.remove('hidden');
   state.retentionView = 'normalised overall';
   state.ppvMaxHour = null;
+  state.ppvView = 'graph';
   setupRetentionControls(row);
   setupPPVControls(row);
   renderRetentionCharts(row);
@@ -607,22 +609,38 @@ function setupPPVControls(showRow) {
   }
 
   container.innerHTML = `
-    <div class="retention-pill-selector">
-      <span>Max hour</span>
-      <div class="retention-pill-group">
-        ${dataset.cohortHours.map(hour => {
-          const available = availableHours.includes(hour);
-          return `
+    <div class="retention-pill-layout ppv-controls-layout">
+      <div class="retention-pill-selector">
+        <span>Max hour</span>
+        <div class="retention-pill-group">
+          ${dataset.cohortHours.map(hour => {
+            const available = availableHours.includes(hour);
+            return `
+              <button
+                class="retention-control-option ${state.ppvMaxHour === hour ? 'active' : ''}"
+                type="button"
+                data-ppv-max-hour="${hour}"
+                ${available ? '' : 'disabled'}
+              >
+                H${hour}
+              </button>
+            `;
+          }).join('')}
+        </div>
+      </div>
+      <div class="retention-pill-selector">
+        <span>View</span>
+        <div class="retention-pill-group">
+          ${['graph', 'xyz'].map(view => `
             <button
-              class="retention-control-option ${state.ppvMaxHour === hour ? 'active' : ''}"
+              class="retention-control-option ${state.ppvView === view ? 'active' : ''}"
               type="button"
-              data-ppv-max-hour="${hour}"
-              ${available ? '' : 'disabled'}
+              data-ppv-view="${view}"
             >
-              H${hour}
+              ${view === 'graph' ? 'Graph' : 'XYZ'}
             </button>
-          `;
-        }).join('')}
+          `).join('')}
+        </div>
       </div>
     </div>
   `;
@@ -633,12 +651,17 @@ function setupPPVControls(showRow) {
       button.addEventListener('click', () => {
         state.ppvMaxHour = Number(button.dataset.ppvMaxHour);
         setupPPVControls(showRow);
-        renderRetentionChart(
-          showRow,
-          'ppv benchmarks',
-          'ppvRetentionChart',
-          'ppvRetentionChartSection'
-        );
+        renderPPVView(showRow);
+      });
+    });
+
+  container
+    .querySelectorAll('[data-ppv-view]')
+    .forEach(button => {
+      button.addEventListener('click', () => {
+        state.ppvView = button.dataset.ppvView;
+        setupPPVControls(showRow);
+        renderPPVView(showRow);
       });
     });
 }
@@ -649,7 +672,75 @@ function renderRetentionCharts(showRow) {
     : state.retentionView;
 
   renderRetentionChart(showRow, normalisedView, 'retentionChart', 'retentionChartSection');
+  renderPPVView(showRow);
+}
+
+function renderPPVView(showRow) {
+  const chartWrap = $('ppvRetentionChart')?.parentElement;
+  const table = $('ppvRetentionTable');
+
+  if (state.ppvView === 'xyz') {
+    chartWrap?.classList.add('hidden');
+    if (table) {
+      table.classList.remove('hidden');
+      table.innerHTML = renderPPVXYZTable(showRow);
+    }
+    return;
+  }
+
+  chartWrap?.classList.remove('hidden');
+  if (table) table.classList.add('hidden');
   renderRetentionChart(showRow, 'ppv benchmarks', 'ppvRetentionChart', 'ppvRetentionChartSection');
+}
+
+function renderPPVXYZTable(showRow) {
+  const dataset = retentionDatasetForView('ppv benchmarks');
+  const availableHours = dataset?.cohortHours?.filter(hour =>
+    dataset.cohortRows?.[`${showRow['Show ID']}|${hour}`]
+  ) || [];
+  const retentionHours = [...new Set(
+    availableHours.flatMap(hour =>
+      retentionFieldEntries(dataset.cohortRows[`${showRow['Show ID']}|${hour}`])
+        .map(point => point.hour)
+    )
+  )].sort((a, b) => a - b);
+
+  const headerCells = retentionHours.map(hour =>
+    `<th>H${hour}_Retention</th>`
+  ).join('');
+  const rows = availableHours.map(hour => {
+    const row = dataset.cohortRows[`${showRow['Show ID']}|${hour}`];
+    const values = retentionHours.map(retentionHour => {
+      const value = row[`H${retentionHour} Ret% Nth TD`];
+      const numeric = Number.parseFloat(String(value ?? '').replace('%', ''));
+      return Number.isFinite(numeric)
+        ? `${(numeric <= 1 ? numeric * 100 : numeric).toFixed(2)}%`
+        : '-';
+    });
+
+    return `
+      <tr>
+        <th>${hour}</th>
+        <td>${escapeHTML(row['H10 LDAU'] || '-')}</td>
+        ${values.map(value => `<td>${value}</td>`).join('')}
+      </tr>
+    `;
+  }).join('');
+
+  return `
+    <div class="ppv-xyz-table-wrap">
+      <table class="ppv-xyz-table">
+        <thead>
+          <tr>
+            <th>Hr / Retention</th>
+            <th>H10 LDAUs</th>
+            ${headerCells}
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  `;
 }
 
 function retentionDatasetForView(viewKey) {
