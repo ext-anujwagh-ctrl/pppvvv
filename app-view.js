@@ -706,7 +706,7 @@ function renderPPVXYZTable(showRow) {
   )].sort((a, b) => a - b);
 
   const headerCells = retentionHours.map(hour =>
-    `<th>H${hour}_Retention</th>`
+    `<th>H${hour} Ret</th>`
   ).join('');
   const rows = availableHours.map(hour => {
     const row = dataset.cohortRows[`${showRow['Show ID']}|${hour}`];
@@ -732,7 +732,7 @@ function renderPPVXYZTable(showRow) {
       <table class="ppv-xyz-table">
         <thead>
           <tr>
-            <th>Hr / Retention</th>
+            <th>Hour / Ret</th>
             <th>H10 LDAUs</th>
             ${headerCells}
           </tr>
