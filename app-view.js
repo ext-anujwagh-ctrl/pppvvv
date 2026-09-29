@@ -300,7 +300,10 @@ function cleanDetailValue(value) {
 function openDetails(row) {
   $('detailsTitle').textContent =
     row['Show Title'] || 'Show details';
-  $('detailsShowId').textContent = row['Show ID'] || '-';
+  $('detailsShowId').textContent = [
+    row['Show ID'],
+    row['Genre']
+  ].filter(Boolean).join(' · ') || '-';
 
   const detailFields = new Set(
     DETAIL_HEADERS.filter(
@@ -736,8 +739,14 @@ function renderRetentionChart(showRow, viewKey, canvasId, sectionId) {
   const benchmarkLabel = dataset.isPPVBenchmark
     ? `PPV benchmark (H${retentionRow['PPV Max Hour']})`
     : showRow['Genre']
-      ? `${showRow['Genre']} benchmark`
-    : 'Genre benchmark';
+      ? `${showRow['Genre']} benchmark (${
+          benchmarkGenreKey(showRow['Genre']) === 'romantasy'
+            ? 'TAB'
+            : benchmarkGenreKey(showRow['Genre']) === 'romance'
+              ? 'DMB'
+              : 'MVS'
+        })`
+      : 'Genre benchmark';
 
   const datasets = [{
     label: dataset.isPPVBenchmark
@@ -781,7 +790,7 @@ function renderRetentionChart(showRow, viewKey, canvasId, sectionId) {
       maintainAspectRatio: false,
       layout: {
         padding: {
-          top: 112
+          top: 24
         }
       },
       interaction: {
