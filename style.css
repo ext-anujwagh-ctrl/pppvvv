@@ -143,6 +143,18 @@ tbody tr:hover { background: #171a20; }
 .ppv-xyz-table thead th { color: #f5f7fb; background: #3b465a; font-weight: 800; }
 .ppv-xyz-table tbody th { color: #e8dfff; background: #211a3c; font-weight: 800; }
 .ppv-xyz-table tbody td { color: var(--text-soft); }
+.ppv-xyz-table tbody td.ppv-ratio-green {
+  color: #a8f3b8;
+  background: rgba(54, 211, 114, .16);
+}
+.ppv-xyz-table tbody td.ppv-ratio-yellow {
+  color: #ffe39a;
+  background: rgba(245, 190, 66, .16);
+}
+.ppv-xyz-table tbody td.ppv-ratio-red {
+  color: #ff9eae;
+  background: rgba(239, 83, 104, .16);
+}
 .retention-chart-wrap { position: relative; height: 330px; min-height: 260px; }
 .retention-controls { padding: 9px; border: 1px solid var(--line); border-radius: 8px; background: rgba(255, 255, 255, .02); }
 #retentionControls, #ppvRetentionControls { min-height: 84px; }

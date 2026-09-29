@@ -379,7 +379,7 @@ function openDetails(row) {
   $('detailsModal').classList.remove('hidden');
   state.retentionView = 'normalised overall';
   state.ppvMaxHour = null;
-  state.ppvView = 'graph';
+  state.ppvView = 'xyz';
   setupRetentionControls(row);
   setupPPVControls(row);
   renderRetentionCharts(row);
@@ -698,6 +698,26 @@ function renderPPVXYZTable(showRow) {
     dataset.cohortRows?.[`${showRow['Show ID']}|${hour}`]
   ) || [];
   const retentionHours = dataset?.cohortHours || [];
+  const benchmarkRow = dataset?.cohortBenchmarks?.[
+    `${benchmarkGenreKey(showRow['Genre'])}|${state.ppvMaxHour}`
+  ];
+
+  const retentionPercent = value => {
+    const numeric = Number.parseFloat(String(value ?? '').replace('%', ''));
+    if (!Number.isFinite(numeric)) return null;
+    return numeric <= 1 ? numeric * 100 : numeric;
+  };
+
+  const comparisonClass = (actual, benchmark) => {
+    if (!Number.isFinite(actual) || !Number.isFinite(benchmark) || benchmark === 0) {
+      return '';
+    }
+
+    const ratio = actual / benchmark;
+    if (ratio > 1) return 'ppv-ratio-green';
+    if (ratio > 0.7) return 'ppv-ratio-yellow';
+    return 'ppv-ratio-red';
+  };
 
   const headerCells = retentionHours.map(hour =>
     `<th>H${hour} Ret</th>`
@@ -706,17 +726,28 @@ function renderPPVXYZTable(showRow) {
     const row = dataset.cohortRows[`${showRow['Show ID']}|${hour}`];
     const values = retentionHours.map(retentionHour => {
       const value = row[`H${retentionHour} Ret% Nth TD`];
-      const numeric = Number.parseFloat(String(value ?? '').replace('%', ''));
-      return Number.isFinite(numeric)
-        ? `${(numeric <= 1 ? numeric * 100 : numeric).toFixed(2)}%`
-        : '-';
+      const actual = retentionPercent(value);
+      const benchmark = retentionPercent(
+        benchmarkRow?.[`H${retentionHour} Ret% Nth TD`]
+      );
+      const ratio = Number.isFinite(actual) && Number.isFinite(benchmark) && benchmark !== 0
+        ? actual / benchmark
+        : null;
+      const title = Number.isFinite(ratio)
+        ? `Actual / benchmark: ${ratio.toFixed(2)}x`
+        : '';
+      const className = comparisonClass(actual, benchmark);
+
+      return Number.isFinite(actual)
+        ? `<td class="${className}"${title ? ` title="${title}"` : ''}>${actual.toFixed(2)}%</td>`
+        : '<td>-</td>';
     });
 
     return `
       <tr>
         <th>${hour}</th>
         <td>${escapeHTML(row['H10 LDAU'] || '-')}</td>
-        ${values.map(value => `<td>${value}</td>`).join('')}
+        ${values.join('')}
       </tr>
     `;
   }).join('');
