@@ -129,7 +129,8 @@ tbody tr:hover { background: #171a20; }
 .modal-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 17px; border-top: 1px solid var(--line); margin-top: 17px; }
 .details-content { display: flex; flex-direction: column; gap: 22px; }
 .retention-action-card { display: flex; align-items: center; padding: 13px 15px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-raised); }
-.retention-chart-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.retention-chart-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: stretch; }
+.retention-chart-grid > .retention-chart-section { min-width: 0; }
 .retention-chart-section { display: flex; flex-direction: column; gap: 12px; padding: 15px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-raised); }
 .retention-chart-section .detail-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .retention-meta { margin: -4px 0 0; color: #fff; font-size: 10px; font-weight: 700; }
@@ -144,9 +145,11 @@ tbody tr:hover { background: #171a20; }
 .ppv-xyz-table tbody th { color: #e8dfff; background: #211a3c; font-weight: 800; }
 .ppv-xyz-table tbody td { color: var(--text-soft); }
 .retention-chart-wrap { position: relative; height: 330px; min-height: 260px; }
-.retention-controls { padding: 9px; border: 1px solid var(--line); border-radius: 8px; background: rgba(255, 255, 255, .02); }
+.retention-controls { min-height: 84px; padding: 9px; border: 1px solid var(--line); border-radius: 8px; background: rgba(255, 255, 255, .02); }
 .retention-pill-layout { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: flex-start; }
-.ppv-controls-layout { align-items: flex-start; gap: 18px; }
+.ppv-controls-layout { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; gap: 12px; }
+.ppv-controls-layout .retention-pill-selector { min-width: 0; }
+.ppv-controls-layout .retention-pill-group { width: 100%; justify-content: space-around; }
 .retention-pill-layout.retention-normalised-controls { display: flex; flex-wrap: nowrap; gap: 12px; }
 .retention-normalised-controls .retention-pill-section { flex: 1 1 0; }
 .retention-type-switcher { display: inline-flex; gap: 3px; margin-bottom: 11px; padding: 3px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255, 255, 255, .025); }
