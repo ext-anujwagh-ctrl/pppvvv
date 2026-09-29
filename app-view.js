@@ -512,7 +512,6 @@ function retentionControlMarkup() {
       <div class="retention-selector-title">${escapeHTML(section.label)}</div>
       <div class="retention-pill-selectors">
         <div class="retention-pill-selector">
-          <span>Locale</span>
           <div class="retention-pill-group">
             ${[section.rows[0]?.options[0], section.rows[1]?.options[0]].map((option, index) => option && !option.disabled
               ? `
@@ -529,7 +528,6 @@ function retentionControlMarkup() {
           </div>
         </div>
         <div class="retention-pill-selector">
-          <span>Gender overall</span>
           <div class="retention-pill-group">
             ${section.rows[0]?.options.slice(1).map(option => option.disabled
               ? ''
@@ -722,7 +720,7 @@ function renderRetentionChart(showRow, viewKey, canvasId, sectionId) {
     return;
   }
 
-  const genreKey = normalized(showRow['Genre']);
+  const genreKey = benchmarkGenreKey(showRow['Genre']);
   const benchmarkRow = dataset.isPPVBenchmark
     ? dataset.cohortBenchmarks[
         `${genreKey}|${retentionRow['PPV Max Hour']}`
@@ -1011,7 +1009,7 @@ function renderComparison() {
       ? dataset.cohortBenchmarks?.[
           `${normalized(row['Genre'])}|${row['PPV Max Hour']}`
         ]
-      : dataset.benchmarks?.[normalized(row['Genre'])];
+      : dataset.benchmarks?.[benchmarkGenreKey(row['Genre'])];
     if (!benchmarkRow) return null;
 
     const benchmarkByHour = new Map(

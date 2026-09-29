@@ -91,7 +91,7 @@ function parseRetentionWorkbook(workbook) {
 
       if (type !== 'benchmark' || !genre) return;
 
-      benchmarkRows[normalized(genre)] = Object.fromEntries(
+      benchmarkRows[benchmarkGenreKey(genre)] = Object.fromEntries(
         headers.map((header, index) => [
           header,
           row[index] ?? ''
@@ -185,7 +185,12 @@ function parsePPVBenchmarkCSV(text) {
     [...new Set(
       retentionColumns.map(column => Number(maxHourRow[column.index]))
     )].forEach(cohortMaxHour => {
-      benchmarkByCohort[`${normalized(genre)}|${cohortMaxHour}`] = {
+      const benchmarkGenre = benchmarkGenreKey(genre);
+      if (!['fantasy', 'romance', 'romantasy'].includes(benchmarkGenre)) {
+        return;
+      }
+
+      benchmarkByCohort[`${benchmarkGenre}|${cohortMaxHour}`] = {
         Genre: genre,
         ...canonicalRow(values, cohortMaxHour)
       };
@@ -261,6 +266,15 @@ function unique(field) {
 
 function normalized(value) {
   return String(value || '').trim().toLowerCase();
+}
+
+function benchmarkGenreKey(value) {
+  const genre = normalized(value);
+
+  if (genre === 'romantasy') return 'romantasy';
+  if (genre === 'romance' || genre === 'drama') return 'romance';
+
+  return 'fantasy';
 }
 
 function isYes(value) {
