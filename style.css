@@ -134,10 +134,9 @@ tbody tr:hover { background: #171a20; }
 .retention-chart-section .detail-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .retention-meta { margin: -4px 0 0; color: #fff; font-size: 10px; font-weight: 700; }
 .ppv-xyz-table-wrap { width: 100%; overflow: hidden; }
-.ppv-xyz-table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 9px; }
-.ppv-xyz-table th, .ppv-xyz-table td { overflow: hidden; padding: 6px 3px; border: 1px solid var(--line); text-align: center; text-overflow: ellipsis; white-space: nowrap; }
-.ppv-xyz-table th:first-child { width: 14%; }
-.ppv-xyz-table th:nth-child(2) { width: 12%; }
+.ppv-xyz-table { width: auto; max-width: 100%; table-layout: auto; border-collapse: collapse; font-size: 9px; }
+.ppv-xyz-table th, .ppv-xyz-table td { overflow: hidden; padding: 5px 4px; border: 1px solid var(--line); text-align: center; text-overflow: ellipsis; white-space: nowrap; }
+.ppv-xyz-table th:first-child, .ppv-xyz-table th:nth-child(2) { width: auto; }
 .ppv-xyz-table thead th { color: #111923; background: #c8ddec; font-weight: 800; }
 .ppv-xyz-table tbody th { color: #111923; background: #c8ddec; font-weight: 800; }
 .ppv-xyz-table tbody td { color: var(--text-soft); }
