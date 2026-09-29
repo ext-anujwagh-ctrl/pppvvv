@@ -148,6 +148,7 @@ tbody tr:hover { background: #171a20; }
 #retentionControls, #ppvRetentionControls { min-height: 84px; }
 .retention-pill-layout { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: flex-start; }
 .ppv-controls-layout { align-items: flex-start; gap: 18px; }
+.ppv-controls-layout { transform: translateY(4px); }
 .retention-pill-layout.retention-normalised-controls { display: flex; flex-wrap: nowrap; gap: 12px; }
 .retention-normalised-controls .retention-pill-section { flex: 1 1 0; }
 .retention-type-switcher { display: inline-flex; gap: 3px; margin-bottom: 11px; padding: 3px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255, 255, 255, .025); }

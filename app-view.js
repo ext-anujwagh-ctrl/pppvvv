@@ -636,7 +636,7 @@ function setupPPVControls(showRow) {
               type="button"
               data-ppv-view="${view}"
             >
-              ${view === 'graph' ? 'Graph' : 'XYZ'}
+              ${view === 'graph' ? 'Graph' : 'Tab'}
             </button>
           `).join('')}
         </div>
