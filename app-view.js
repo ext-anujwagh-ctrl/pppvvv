@@ -962,11 +962,24 @@ function renderComparison() {
   const status = $('comparerStatus');
   const analysis = $('comparerAnalysis');
   const typeSelect = $('compareRetentionType');
+  const resultGrid = $('comparerResultGrid');
 
   if (!canvas || !status || !analysis || !typeSelect) return;
 
   const showIdOne = $('compareShowIdOne').value.trim();
   const showIdTwo = $('compareShowIdTwo').value.trim();
+  if (resultGrid) {
+    resultGrid.classList.toggle(
+      'hidden',
+      !showIdOne && !showIdTwo
+    );
+  }
+
+  if ((!showIdOne || !showIdTwo) && state.comparerChart) {
+    state.comparerChart.destroy();
+    state.comparerChart = null;
+  }
+
   const dataset = retentionDatasetForView(typeSelect.value);
   const rowOne = compareRowById(dataset, showIdOne);
   const rowTwo = compareRowById(dataset, showIdTwo);

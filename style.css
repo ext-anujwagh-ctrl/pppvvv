@@ -173,7 +173,7 @@ tbody tr:hover { background: #171a20; }
 .metrics-table-wrap { width: 100%; overflow: hidden; }
 .metrics-table { width: 100%; min-width: 0; table-layout: fixed; border-collapse: collapse; font-size: 10px; }
 .metrics-table th, .metrics-table td { overflow-wrap: anywhere; padding: 7px 5px; border-bottom: 1px solid var(--line-soft); text-align: left; vertical-align: top; }
-.metrics-table th:first-child { width: 31%; }
+.metrics-table th:first-child { width: 24%; }
 .metrics-table thead th { color: #fff; font-weight: 800; }
 .metrics-table tbody th { color: var(--muted); font-weight: 700; white-space: nowrap; }
 .metrics-table td { color: var(--text-soft); }
