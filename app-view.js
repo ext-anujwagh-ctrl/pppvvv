@@ -604,14 +604,14 @@ function setupPPVControls(showRow) {
   const meta = $('ppvRetentionMeta');
   if (meta) {
     meta.textContent = cohortRow
-      ? `H${state.ppvMaxHour} cohort · H10 LDAU: ${cohortRow['H10 LDAU'] || '-'}`
+      ? `H10 LDAU: ${Number(cohortRow['H10 LDAU']).toLocaleString()}`
       : 'No PPV benchmark data for this show.';
   }
 
   container.innerHTML = `
     <div class="retention-pill-layout ppv-controls-layout">
       <div class="retention-pill-selector">
-        <span>Max hour</span>
+        <span>Max Hour Cohort</span>
         <div class="retention-pill-group">
           ${dataset.cohortHours.map(hour => {
             const available = availableHours.includes(hour);
@@ -1198,7 +1198,7 @@ function renderComparison() {
         {
           label: rowTwo['Show Title'] || showIdTwo,
           data: hours.map(hour => pointMapTwo.get(hour) ?? null),
-          borderColor: '#ff789c',
+          borderColor: '#78e7f0',
           backgroundColor: 'transparent',
           borderWidth: 2,
           pointRadius: 2,
