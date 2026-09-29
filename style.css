@@ -152,6 +152,9 @@ tbody tr:hover { background: #171a20; }
 .retention-control-option.active { color: #071118; background: #55c5d6; box-shadow: none; font-weight: 700; }
 .retention-control-option:disabled { color: #4d5664; background: rgba(255, 255, 255, .025); cursor: not-allowed; }
 .comparer-card { margin-top: 16px; }
+.tools-card > .section-heading { margin-bottom: 4px; }
+.tools-card > .comparer-card { margin-top: 0; }
+.comparer-card-empty .comparer-status, .comparer-card-empty .comparer-analysis { display: none; }
 .tools-card { margin-top: 16px; }
 .tool-card { padding: 14px; border: 1px solid var(--line); border-radius: 9px; background: rgba(255, 255, 255, .018); }
 .tool-card + .tool-card { margin-top: 14px; }

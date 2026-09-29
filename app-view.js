@@ -983,6 +983,7 @@ function renderComparison() {
   const analysis = $('comparerAnalysis');
   const typeSelect = $('compareRetentionType');
   const resultGrid = $('comparerResultGrid');
+  const comparerCard = $('comparerCard');
 
   if (!canvas || !status || !analysis || !typeSelect) return;
 
@@ -991,6 +992,12 @@ function renderComparison() {
   if (resultGrid) {
     resultGrid.classList.toggle(
       'hidden',
+      !showIdOne && !showIdTwo
+    );
+  }
+  if (comparerCard) {
+    comparerCard.classList.toggle(
+      'comparer-card-empty',
       !showIdOne && !showIdTwo
     );
   }
