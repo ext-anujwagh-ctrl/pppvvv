@@ -95,6 +95,10 @@ function operationalCell(field, row) {
     `;
   }
 
+  if (field === 'Editorial documents' || field === 'Log of the conversation') {
+    return renderLinkValue(row[field], 'Open link', field);
+  }
+
   if (field === 'PPV Tag') return tag(row[field]);
   if (field === 'Active/Inactive') return statusTag(row[field]);
   if (field === 'Priority') return priorityTag(row[field]);
@@ -283,9 +287,28 @@ function detailCard(header, value) {
       <span class="detail-label">
         ${escapeHTML(header)}
       </span>
-      <div class="detail-value">${escapeHTML(cleanDetailValue(value))}</div>
+      <div class="detail-value">${renderLinkValue(value, 'Open link', header)}</div>
     </div>
   `;
+}
+
+function renderLinkValue(value, linkLabel = 'Open link', header = '') {
+  const cleaned = cleanDetailValue(value);
+  if (!cleaned) return '-';
+
+  const linkField = header === 'Editorial documents' ||
+    header === 'Log of the conversation';
+
+  if (!linkField) return escapeHTML(cleaned);
+
+  return cleaned
+    .split(/(https?:\/\/[^\s]+)/g)
+    .map(part => {
+      if (!/^https?:\/\//i.test(part)) return escapeHTML(part);
+      return `<a class="detail-link" href="${escapeHTML(part)}" target="_blank" rel="noopener noreferrer">${escapeHTML(linkLabel)}</a>`;
+    })
+    .join('')
+    .replace(/\n/g, '<br>');
 }
 
 function cleanDetailValue(value) {

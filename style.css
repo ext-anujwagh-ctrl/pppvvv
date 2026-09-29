@@ -245,6 +245,13 @@ tbody tr:hover { background: #171a20; }
 .detail-label { display: block; color: #fff; font-size: 11px; font-weight: 700; line-height: 1.35; }
 .detail-value { min-width: 0; margin-top: 5px; color: #edf1f7; font-size: 13px; line-height: 1.5; white-space: pre-wrap; }
 .detail-card.full .detail-value { color: var(--text-soft); line-height: 1.6; }
+.detail-link, .table-link {
+  color: var(--accent-soft);
+  text-decoration: underline;
+  text-decoration-color: rgba(195, 164, 255, .55);
+  text-underline-offset: 2px;
+}
+.detail-link:hover, .table-link:hover { color: var(--text); }
 
 @media (max-width: 1250px) { .all-filters { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 @media (max-width: 1000px) { .app-shell { padding: 26px 20px 48px; } .topbar { align-items: flex-start; flex-direction: column; } .chart-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .all-filters { grid-template-columns: repeat(3, minmax(0, 1fr)); } .column-selector { grid-template-columns: repeat(2, 1fr); } }
@@ -356,7 +363,7 @@ td { padding: 9px 7px; font-size: 11px; }
   border-color: var(--accent);
   box-shadow: inset 0 0 0 1px rgba(166, 117, 255, .22);
   color: var(--text);
-  background: #24101a;
+  background: rgba(166, 117, 255, .12);
 }
 .multi-filter.filter-has-selection .multi-filter-toggle span { color: #eef8fb; }
 .multi-filter.filter-has-selection .multi-filter-toggle b { color: var(--accent); }
