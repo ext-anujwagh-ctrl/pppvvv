@@ -730,6 +730,11 @@ function renderPPVXYZTable(showRow) {
   return `
     <div class="ppv-xyz-table-wrap">
       <table class="ppv-xyz-table">
+        <colgroup>
+          <col class="ppv-xyz-hour-column" />
+          <col class="ppv-xyz-ldau-column" />
+          ${retentionHours.map(() => '<col class="ppv-xyz-retention-column" />').join('')}
+        </colgroup>
         <thead>
           <tr>
             <th>Hour / Ret</th>
@@ -1198,7 +1203,7 @@ function renderComparison() {
         {
           label: rowTwo['Show Title'] || showIdTwo,
           data: hours.map(hour => pointMapTwo.get(hour) ?? null),
-          borderColor: '#55c5d6',
+          borderColor: '#f2a14a',
           backgroundColor: 'transparent',
           borderWidth: 2,
           pointRadius: 2,
@@ -1459,7 +1464,7 @@ function downloadShowReport() {
 
   doc.setFillColor(15, 23, 42);
   doc.rect(0, 0, pageWidth, 78, 'F');
-  write('P3 & PPV Shows Slate', { size: 10, color: [85, 197, 214], weight: 'bold', gap: 5 });
+  write('P3 & PPV Shows Slate', { size: 10, color: [242, 140, 40], weight: 'bold', gap: 5 });
   write(reportTitle(row), { size: 20, color: [255, 255, 255], weight: 'bold', gap: 3 });
   write(`${reportId(row)} · ${reportValue(row, 'show_status')}`, { size: 9, color: [190, 200, 215], gap: 15 });
 
