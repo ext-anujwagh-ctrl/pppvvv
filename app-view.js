@@ -352,8 +352,7 @@ function openDetails(row) {
     <section class="retention-chart-grid">
       <article id="retentionChartSection" class="retention-chart-section hidden">
         <div class="detail-section-heading">
-          <span class="eyebrow">RETENTION PERFORMANCE</span>
-          <strong>Normalised retention</strong>
+          <strong>Normalised Ret. Performance</strong>
         </div>
         <div id="retentionControls" class="retention-controls"></div>
         <p id="retentionMeta" class="retention-meta"></p>
@@ -363,7 +362,6 @@ function openDetails(row) {
       </article>
       <article id="ppvRetentionChartSection" class="retention-chart-section hidden">
         <div class="detail-section-heading">
-          <span class="eyebrow">RETENTION PERFORMANCE</span>
           <strong>PPV Benchmarks</strong>
         </div>
         <div id="ppvRetentionControls" class="retention-controls"></div>
@@ -603,8 +601,9 @@ function setupPPVControls(showRow) {
   ];
   const meta = $('ppvRetentionMeta');
   if (meta) {
+    const ldau = Number(cohortRow?.['H10 LDAU']);
     meta.textContent = cohortRow
-      ? `H10 LDAU: ${Number(cohortRow['H10 LDAU']).toLocaleString()}`
+      ? `H10 LDAU: ${Number.isFinite(ldau) ? ldau.toLocaleString() : '-'}`
       : 'No PPV benchmark data for this show.';
   }
 
