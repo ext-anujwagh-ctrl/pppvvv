@@ -675,8 +675,11 @@ function renderRetentionCharts(showRow) {
 }
 
 function renderPPVView(showRow) {
+  const section = $('ppvRetentionChartSection');
   const chartWrap = $('ppvRetentionChart')?.parentElement;
   const table = $('ppvRetentionTable');
+
+  section?.classList.remove('hidden');
 
   if (state.ppvView === 'xyz') {
     chartWrap?.classList.add('hidden');
