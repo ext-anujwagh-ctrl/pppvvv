@@ -698,12 +698,7 @@ function renderPPVXYZTable(showRow) {
   const availableHours = dataset?.cohortHours?.filter(hour =>
     dataset.cohortRows?.[`${showRow['Show ID']}|${hour}`]
   ) || [];
-  const retentionHours = [...new Set(
-    availableHours.flatMap(hour =>
-      retentionFieldEntries(dataset.cohortRows[`${showRow['Show ID']}|${hour}`])
-        .map(point => point.hour)
-    )
-  )].sort((a, b) => a - b);
+  const retentionHours = dataset?.cohortHours || [];
 
   const headerCells = retentionHours.map(hour =>
     `<th>H${hour} Ret</th>`
@@ -1203,7 +1198,7 @@ function renderComparison() {
         {
           label: rowTwo['Show Title'] || showIdTwo,
           data: hours.map(hour => pointMapTwo.get(hour) ?? null),
-          borderColor: '#f2a14a',
+          borderColor: '#55c5d6',
           backgroundColor: 'transparent',
           borderWidth: 2,
           pointRadius: 2,
@@ -1464,7 +1459,7 @@ function downloadShowReport() {
 
   doc.setFillColor(15, 23, 42);
   doc.rect(0, 0, pageWidth, 78, 'F');
-  write('P3 & PPV Shows Slate', { size: 10, color: [242, 140, 40], weight: 'bold', gap: 5 });
+  write('P3 & PPV Shows Slate', { size: 10, color: [85, 197, 214], weight: 'bold', gap: 5 });
   write(reportTitle(row), { size: 20, color: [255, 255, 255], weight: 'bold', gap: 3 });
   write(`${reportId(row)} · ${reportValue(row, 'show_status')}`, { size: 9, color: [190, 200, 215], gap: 15 });
 

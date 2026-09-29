@@ -60,16 +60,16 @@ function groupedCounts(field, options = {}) {
 
 function chartColors(length) {
   const colors = [
-    '#f28c28',
-    '#ffb45e',
-    '#e4a94f',
-    '#d96f32',
-    '#c95b27',
-    '#f0c36a',
-    '#b9793d',
-    '#e38b58',
-    '#a85d2b',
-    '#c49a72'
+    '#55c5d6',
+    '#6da7f5',
+    '#e4b65c',
+    '#55c99b',
+    '#8c9bea',
+    '#73c0a4',
+    '#b5a0e6',
+    '#78a8c7',
+    '#d08d78',
+    '#8c99aa'
   ];
 
   return Array.from(
