@@ -848,7 +848,7 @@ function renderRetentionChart(showRow, viewKey, canvasId, sectionId) {
 }
 
 function allRetentionOptions() {
-  return RETENTION_VIEW_SECTIONS.flatMap(section =>
+  const options = RETENTION_VIEW_SECTIONS.flatMap(section =>
     section.rows.flatMap(row =>
       row.options
         .filter(option => !option.disabled)
@@ -858,8 +858,28 @@ function allRetentionOptions() {
         }))
     )
   ).filter((option, index, options) =>
-    options.findIndex(item => item.sheet === option.sheet) === index
+        options.findIndex(item => item.sheet === option.sheet) === index
   );
+
+  const desiredOrder = [
+    'normalised overall',
+    'normalised US',
+    'normalised male',
+    'normalised female',
+    'Whale+ Overall',
+    'Whale+ US',
+    'Whale+ Male',
+    'Whale+ Female'
+  ];
+
+  return options.sort((a, b) => {
+    const aIndex = desiredOrder.indexOf(a.sheet);
+    const bIndex = desiredOrder.indexOf(b.sheet);
+    const fallbackIndex = desiredOrder.length;
+
+    return (aIndex < 0 ? fallbackIndex : aIndex) -
+      (bIndex < 0 ? fallbackIndex : bIndex);
+  });
 }
 
 function setupComparer() {
@@ -985,7 +1005,7 @@ function renderComparison() {
   const rowTwo = compareRowById(dataset, showIdTwo);
 
   if (!showIdOne || !showIdTwo) {
-    status.textContent = 'Enter two Show IDs to compare.';
+    status.textContent = '';
     analysis.textContent = '';
     clearComparerMetrics();
     return;
