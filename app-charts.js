@@ -20,20 +20,30 @@ function groupedCounts(field, options = {}) {
     const rawValue = String(row[field] ?? '').trim();
     const normalizedValue = normalized(rawValue);
 
-    if (field === 'PPV Tag' && !rawValue && options.excludeBlank) {
+    if (!rawValue && options.excludeBlank) {
+      return;
+    }
+    if (field === 'Category' && normalizedValue === 'not found') {
+      return;
+    }
+    if (options.excludeValues?.some(value => normalizedValue === normalized(value))) {
+      return;
+    }
+    if (
+      ['Dumper vs Original', 'Category'].includes(field) &&
+      normalizedValue === 'to be tagged'
+    ) {
+      return;
+    }
+    if (
+      field === 'Classification' &&
+      state.operationalScope !== 'all-others' &&
+      normalizedValue === 'to be tagged'
+    ) {
       return;
     }
 
     let value = rawValue || '(Blank)';
-
-    if (
-      field === 'Priority' &&
-      (!rawValue ||
-        normalizedValue === 'na' ||
-        normalizedValue === 'not found')
-    ) {
-      value = 'NA / Not found';
-    }
 
     value = chartDisplayLabel(value);
     counts[value] = (counts[value] || 0) + 1;
@@ -78,171 +88,191 @@ function chartColors(length) {
   );
 }
 
+const PIE_VALUE_LABELS_PLUGIN = {
+  id: 'pieValueLabels',
+  afterDatasetsDraw(chart) {
+    if (chart.config.type !== 'pie') return;
+    const meta = chart.getDatasetMeta(0);
+    const values = chart.data.datasets[0]?.data || [];
+    const context = chart.ctx;
+
+    context.save();
+    context.fillStyle = '#ffffff';
+    context.font = '700 12px Inter, sans-serif';
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+
+    meta.data.forEach((arc, index) => {
+      const value = Number(values[index]);
+      if (!Number.isFinite(value) || value <= 0) return;
+      const angle = (arc.startAngle + arc.endAngle) / 2;
+      const radius = arc.outerRadius * 0.56;
+      const point = {
+        x: arc.x + Math.cos(angle) * radius,
+        y: arc.y + Math.sin(angle) * radius
+      };
+      if (
+        chart.canvas?.id === 'contractedChart' &&
+        normalized(chart.data.labels?.[index]) === 'hold'
+      ) {
+        point.x += 1;
+        point.y -= 5;
+      }
+      context.fillText(value.toLocaleString('en-IN'), point.x, point.y);
+    });
+
+    context.restore();
+  }
+};
+
 function drawChart(id, type, field, options = {}) {
-  if (typeof Chart === 'undefined') return;
-
   const canvas = $(id);
-  const groups = groupedCounts(field, options);
-  const horizontal = Boolean(options.horizontal);
+  if (!canvas) return;
 
-  const labels = groups.map(item => item[0]);
-  const data = groups.map(item => item[1]);
+  const groups = groupedCounts(field, options);
+  const container = canvas.parentElement;
+  const total = state.filteredRows.length;
 
   if (state.charts[id]) {
     state.charts[id].destroy();
+    delete state.charts[id];
   }
 
-  state.charts[id] = new Chart(canvas, {
-    type,
-
-    data: {
-      labels,
-
-      datasets: [
-        {
-          data,
-          backgroundColor: chartColors(data.length),
-          borderColor:
-            type === 'bar'
-              ? '#ff5964'
-              : '#11151d',
-          borderWidth: type === 'bar' ? 0 : 2,
-          borderRadius: type === 'bar' ? 5 : 0,
-          barPercentage: .72
-        }
-      ]
-    },
-
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      indexAxis: horizontal ? 'y' : 'x',
-
-      animation: {
-        duration: 250
+  if (type === 'pie') {
+    canvas.style.display = 'block';
+    container.classList.remove('count-card-wrap');
+    container.querySelector('.count-card-scroller')?.remove();
+    const colors = groups.map((item, index) => {
+      if (id === 'contractedChart') {
+        const categoryColors = {
+          hold: '#a675ff',
+          keep: '#78e7f0',
+          remove: '#4f3d7d'
+        };
+        return categoryColors[normalized(item[0])] || chartColors(groups.length)[index];
+      }
+      return chartColors(groups.length)[index];
+    });
+    state.charts[id] = new Chart(canvas, {
+      type: 'pie',
+      data: {
+        labels: groups.map(item => item[0]),
+        datasets: [{
+          data: groups.map(item => item[1]),
+          backgroundColor: colors,
+          borderColor: '#11151d',
+          borderWidth: 2
+        }]
       },
-
-      plugins: {
-        legend: {
-          display: type === 'pie',
-          position: 'bottom',
-
-          labels: {
-            color: '#b7c0ce',
-
-            font: {
-              size: 10
-            },
-
-            boxWidth: 10,
-            padding: 8
-          }
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        layout: {
+          padding: id === 'subjectiveConvictionChart'
+            ? { bottom: 20 }
+            : 0
         },
-
-        tooltip: {
-          callbacks: {
-            label: context =>
-              ` ${context.label}: ${context.raw}`
+        plugins: {
+          legend: {
+            display: true,
+            position: 'bottom',
+            labels: {
+              color: '#b7c0ce',
+              font: { size: 10 },
+              boxWidth: 10,
+              padding: 8,
+              ...(id === 'subjectiveConvictionChart' ? {
+                generateLabels: chart => {
+                  const baseLabels = Chart.overrides.pie.plugins.legend.labels.generateLabels(chart);
+                  const order = ['original', 'dumper'];
+                  return baseLabels.sort((a, b) => {
+                    const aIndex = order.indexOf(normalized(a.text));
+                    const bIndex = order.indexOf(normalized(b.text));
+                    return (aIndex < 0 ? order.length : aIndex) -
+                      (bIndex < 0 ? order.length : bIndex);
+                  });
+                }
+              } : {})
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: context => ` ${context.label}: ${context.raw}`
+            }
           }
         }
       },
+      plugins: [PIE_VALUE_LABELS_PLUGIN]
+    });
+    return;
+  }
 
-      scales:
-        type === 'bar'
-          ? horizontal
-            ? {
-                x: {
-                  beginAtZero: true,
-
-                  ticks: {
-                    color: '#8e98a9',
-
-                    font: {
-                      size: 10
-                    },
-
-                    precision: 0
-                  },
-
-                  grid: {
-                    color: '#293140'
-                  }
-                },
-
-                y: {
-                  ticks: {
-                    color: '#b7c0ce',
-
-                    font: {
-                      size: 10
-                    }
-                  },
-
-                  grid: {
-                    display: false
-                  }
-                }
-              }
-            : {
-                x: {
-                  ticks: {
-                    color: '#8e98a9',
-
-                    font: {
-                      size: 10
-                    },
-
-                    maxRotation: 35,
-                    minRotation: 0
-                  },
-
-                  grid: {
-                    display: false
-                  }
-                },
-
-                y: {
-                  beginAtZero: true,
-
-                  ticks: {
-                    color: '#8e98a9',
-
-                    font: {
-                      size: 10
-                    },
-
-                    precision: 0
-                  },
-
-                  grid: {
-                    color: '#293140'
-                  }
-                }
-              }
-          : {}
-    }
-  });
+  canvas.style.display = 'none';
+  container.classList.add('count-card-wrap');
+  container.classList.toggle(
+    'count-card-compact',
+    ['overallConvictionChart', 'classificationChart'].includes(id)
+  );
+  container.parentElement?.classList.toggle(
+    'chart-card-count-rows',
+    ['overallConvictionChart', 'classificationChart'].includes(id)
+  );
+  container.classList.toggle(
+    'count-card-three-columns',
+    id === 'classificationChart'
+  );
+  container.classList.toggle(
+    'count-card-two-columns',
+    id === 'overallConvictionChart'
+  );
+  let scroller = container.querySelector('.count-card-scroller');
+  if (!scroller) {
+    scroller = document.createElement('div');
+    container.appendChild(scroller);
+  }
+  scroller.className = 'count-card-scroller';
+  scroller.setAttribute('role', 'list');
+  scroller.setAttribute('aria-label', `${field} counts`);
+  scroller.innerHTML = `
+      ${groups.length ? groups.map(([label, count], index) => {
+        const percentage = total ? (count / total) * 100 : 0;
+        const color = chartColors(groups.length)[index];
+        return `
+          <article class="count-card" role="listitem" style="--count-card-color: ${color}">
+            <div class="count-card-label" title="${escapeHTML(label)}">${escapeHTML(label)}</div>
+            <div class="count-card-metric">
+              <strong class="count-card-value">${count.toLocaleString('en-IN')}</strong>
+              <span class="count-card-share">(${percentage.toFixed(1)}% of view)</span>
+            </div>
+          </article>
+        `;
+      }).join('') : '<div class="count-card-empty">No values in view</div>'}
+  `;
 }
 
 function updateCharts() {
   drawChart(
     'overallConvictionChart',
     'bar',
-    'Classification',
-    { horizontal: true }
+    'PPV Tag',
+    {
+      horizontal: true,
+      excludeBlank: true,
+      excludeValues: state.operationalScope === 'all-others' ? [] : ['testing_p2']
+    }
   );
 
   drawChart(
     'subjectiveConvictionChart',
-    'bar',
-    'Category',
-    { horizontal: true }
+    'pie',
+    'Dumper vs Original',
+    { horizontal: true, excludeBlank: true }
   );
 
   drawChart(
     'contractedChart',
-    'bar',
-    'PPV Tag',
+    'pie',
+    'Category',
     {
       excludeBlank: true,
       horizontal: true
@@ -250,9 +280,9 @@ function updateCharts() {
   );
 
   drawChart(
-    'priorityChart',
+    'classificationChart',
     'bar',
-    'Priority',
-    { horizontal: true }
+    'Classification',
+    { horizontal: true, excludeBlank: true }
   );
 }

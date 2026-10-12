@@ -61,6 +61,33 @@ function parseCSV(text) {
   );
 }
 
+function showLabelKey(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '');
+}
+
+function parseShowLabelsWorkbook(workbook) {
+  const labels = {};
+
+  workbook.SheetNames.forEach(sheetName => {
+    const rows = XLSX.utils.sheet_to_json(
+      workbook.Sheets[sheetName],
+      { header: 1, defval: '' }
+    );
+
+    rows.slice(1).forEach(row => {
+      const title = String(row[0] || '').trim();
+      const label = String(row[1] || '').trim();
+
+      if (title && label) labels[showLabelKey(title)] = label;
+    });
+  });
+
+  return labels;
+}
+
 function parseRetentionWorkbook(workbook) {
   const datasets = {};
 
@@ -134,7 +161,10 @@ function parsePPVBenchmarkCSV(text) {
     defval: ''
   });
   const headerIndex = matrix.findIndex(row =>
-    row.some(cell => String(cell).trim().toLowerCase() === 'show_id')
+    row.some(cell => {
+      const normalizedHeader = String(cell).trim().toLowerCase().replace(/[\s_-]+/g, '');
+      return normalizedHeader === 'showid';
+    })
   );
 
   if (headerIndex < 0) {
@@ -145,6 +175,13 @@ function parsePPVBenchmarkCSV(text) {
   const headers = matrix[headerIndex].map(cell =>
     String(cell || '').trim()
   );
+  const normalizedHeader = header => String(header || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]+/g, '');
+  const showIdColumnIndex = headers.findIndex(header => normalizedHeader(header) === 'showid');
+  const showTitleColumnIndex = headers.findIndex(header => normalizedHeader(header) === 'showtitle');
+  const genreColumnIndex = headers.findIndex(header => normalizedHeader(header) === 'genre');
   const retentionColumns = headers
     .map((header, index) => {
       const match = header.match(/^H(\d+)_Retention$/i);
@@ -178,7 +215,7 @@ function parsePPVBenchmarkCSV(text) {
   const benchmarkRows = {};
 
   matrix.slice(0, headerIndex).forEach(values => {
-    const genre = String(values[2] || '').trim();
+    const genre = String(values[genreColumnIndex] || '').trim();
     if (!genre) return;
 
     const benchmarkByCohort = {};
@@ -209,9 +246,9 @@ function parsePPVBenchmarkCSV(text) {
   const rows = matrix
     .slice(headerIndex + 1)
     .map(values => {
-      const showId = String(values[0] || '').trim();
-      const showTitle = String(values[1] || '').trim();
-      const genre = String(values[2] || '').trim();
+      const showId = String(values[showIdColumnIndex] || '').trim();
+      const showTitle = String(values[showTitleColumnIndex] || '').trim();
+      const genre = String(values[genreColumnIndex] || '').trim();
       let lastCohort = null;
 
       cohortHours.forEach(cohortMaxHour => {
@@ -255,6 +292,16 @@ function parsePPVBenchmarkCSV(text) {
 }
 
 function unique(field) {
+  if (field === 'Label') {
+    return [
+      ...new Set(
+        state.allRows.map(row =>
+          state.showLabels[showLabelKey(row['Show Title'])] || ''
+        )
+      )
+    ].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  }
+
   return [
     ...new Set(
       state.allRows.map(row => row[field] ?? '')
@@ -342,30 +389,6 @@ function statusTag(value) {
   const className = isYes(value)
     ? 'tag-green'
     : 'tag-red';
-
-  return `
-    <span class="tag ${className}">
-      ${escapeHTML(value)}
-    </span>
-  `;
-}
-
-function priorityTag(value) {
-  if (!value) return '-';
-
-  const normalizedValue = normalized(value);
-
-  const className = [
-    'high',
-    'urgent'
-  ].includes(normalizedValue)
-    ? 'tag-red'
-    : [
-        'medium',
-        'p2'
-      ].includes(normalizedValue)
-      ? 'tag-yellow'
-      : '';
 
   return `
     <span class="tag ${className}">

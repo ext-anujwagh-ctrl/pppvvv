@@ -3,6 +3,11 @@
 function render() {
   const rows = state.filteredRows;
 
+  $('operationalTableWrap')?.classList.toggle(
+    'has-extra-columns',
+    state.operationalColumns.some(column => !OPERATIONAL_VIEW_HEADERS.includes(column))
+  );
+
   renderOperationalTableHead();
 
   updateCharts();
@@ -72,10 +77,12 @@ function renderOperationalTableHead() {
 function tableHeaderLabel(field) {
   const labels = {
     'Show Title': 'Show',
+    Label: 'Label',
     'PPV Tag': 'PPV tag',
     'Active/Inactive': 'Status',
     'Activity Days (L30D)': 'L30 Actv',
-    'Show Length': 'Length'
+    'Show Length': 'Length',
+    Elastic: 'Elastic'
   };
 
   return labels[field] || field;
@@ -95,14 +102,23 @@ function operationalCell(field, row) {
     `;
   }
 
-  if (field === 'Editorial documents' || field === 'Log of the conversation') {
+  if (field === 'Label') {
+    const label = state.showLabels[showLabelKey(row['Show Title'])];
+    return label
+      ? `<span class="show-label-dot show-label-${normalized(label)}" title="${escapeHTML(label)}" aria-label="${escapeHTML(label)}"></span>`
+      : '-';
+  }
+
+  if (field === 'Elastic') {
+    return elasticThroughForShow(row) ? 'Yes (1)' : 'No (0)';
+  }
+
+  if (LINK_FIELDS.has(field)) {
     return renderLinkValue(row[field], 'Open link', field);
   }
 
   if (field === 'PPV Tag') return tag(row[field]);
   if (field === 'Active/Inactive') return statusTag(row[field]);
-  if (field === 'Priority') return priorityTag(row[field]);
-
   return escapeHTML(row[field] || '-');
 }
 
@@ -110,7 +126,7 @@ function setupOperationalColumns() {
   const container = $('operationalColumnSelector');
   if (!container) return;
 
-  container.innerHTML = CSV_HEADERS.map(field => `
+  container.innerHTML = OPERATIONAL_COLUMN_OPTIONS.map(field => `
     <label class="column-option ${state.operationalColumns.includes(field) ? 'column-option-pinned' : ''}">
       <input type="checkbox" data-operational-column="${escapeHTML(field)}" ${state.operationalColumns.includes(field) ? 'checked' : ''} />
       <span>${escapeHTML(tableHeaderLabel(field))}</span>
@@ -182,99 +198,103 @@ function statusTag(value) {
   `;
 }
 
-function priorityTag(value) {
-  if (!value) return '-';
-
-  const normalizedValue = normalized(value);
-
-  const priorityClasses = {
-    p00: 'tag-priority-p00',
-    p0: 'tag-priority-p0',
-    p1: 'tag-priority-p1',
-    p2: 'tag-priority-p2',
-    p3: 'tag-priority-p3'
-  };
-
-  const className =
-    priorityClasses[normalizedValue] || '';
-  return `
-    <span class="tag ${className}">
-      ${escapeHTML(value)}
-    </span>
-  `;
-}
-
 const DETAIL_GROUPS = [
   {
-    title: 'Editorial and priority',
+    title: 'Show Level Information',
     fields: [
+      'Show Genre',
+      'Show Length',
+      'PPV Status',
+      'WBP Sub Status',
       'Is Top Author Show?',
-      'Completed',
-      'Incentive Flag',
-      'L3M Payouts',
-      'Classification',
+      'Contract (WBP, FTC)',
+      'Incentive Flag Book',
+      'Completion Status',
+      'Active / Inactive',
+      'Activity Days (L30D)',
       'Throughput (L30D)',
-      'Published Word Count',
-      'What it means?',
-      'Total Throughput (L30D)',
-      'Contracted',
-      'Editor',
-      'CL',
-      'SCL',
-      'Overall Editorial conviction',
-      'Subjective Conviction'
+      'Published Word Count'
     ]
   },
   {
-    title: 'Author information',
+    title: 'Editorial Tagging & Information',
+    fields: [
+      'Editor',
+      'CL',
+      'SCL',
+      'Dumper vs Original',
+      'Editorial Slate',
+      'Action',
+      'Remarks',
+      'Ep Range Reference',
+      'Plagiarism Status'
+    ]
+  },
+  {
+    title: 'Editorial Corner | Actionables',
+    fields: [
+      'Overall Editorial Conviction',
+      'Story Subjective Conviction',
+      'Author Level Conviction',
+      'Editor - Writer Communication Status',
+      'Edits Required?',
+      'Episodes Currently Being Edited (23-45)',
+      'Episode Edit Hour Range (HX0)',
+      'Episode Range Currently Being Edited (Start)',
+      'Episode Range Currently Being Edited (End)',
+      'Current Editing Status',
+      "Author's Editorial Stance",
+      'Edits Receivable ETA (dd/mm/yy)',
+      'Most Recent Interaction Date(dd/mm/yy)',
+      'Meeting Remarks',
+      'Next Meeting Date(dd/mm/yyyy)',
+      'Other Comments (If Any)'
+    ]
+  },
+  {
+    title: 'Editorial Documents',
+    fields: [
+      'Show Documents',
+      'Author Folders',
+      'Meeting Notes Document',
+      'Story Snapshot Document',
+      'Plag Report Link',
+      'Episodic Retention (ECR) Sheet',
+      'Comment Analysis (CA) Sheet',
+      'Editorial Report Document',
+      'Rewrites Received Folder'
+    ]
+  },
+  {
+    title: 'Author Information',
     fields: [
       'Author ID',
       'Author Name',
       'Author Locale',
       'Author Contact',
-      'Author Occupation',
-      'Author Age?',
-      'Registration on Pocket',
+      'Author Email',
+      'Preferred Communication Medium',
+      'Discord Channel Link (Show Level)',
+      'Registration on Pocket (dd/mm/yy)',
       'Listener Tag',
       'No. of shows on Pocket (>10K WC)',
       'No. of contracted shows on Pocket',
-      'Number of other shows in P3/PPV'
-    ]
-  },
-  {
-    title: 'Writer and relationship',
-    fields: [
-      'Writer Relation / Last Touch Point',
-      "Writer's Editing Activity",
-      'Writing on other platforms',
-      'Where are you connected to the writer?',
-      'Editor Connect History',
-      'Writer Cadence',
-      'Date Connected',
-      'Primary Medium',
-      'Connected details',
-      'Chapters / Hrs Planned?',
-      'Writer / Editor Focus'
-    ]
-  },
-  {
-    title: 'Comments and notes',
-    fields: [
-      'Editorial Comments (Writer POV)',
-      'Editorial Comments (Story POV)',
-      'Other Comments (If Any)',
-      'Editorial documents',
-      'Synopsis',
-      'Log of the conversation',
-      'Changes this week',
-      'Risk/Help Needed/CX Escalation Ongoing'
+      'Number of other shows in P3/PPV',
+      'Total Throughput (L30D)',
+      'Date Updated'
     ]
   }
 ];
 
+const DETAIL_FIELD_LABELS = {
+  'Subjective Conviction': 'Story Subjective Conviction'
+};
+
 function detailCard(header, value) {
+  const safeValue = String(value ?? '');
+  const label = DETAIL_FIELD_LABELS[header] || header;
   const full =
-    value.length > 100 ||
+    safeValue.length > 100 ||
     header.includes('Comments') ||
     header.includes('Synopsis') ||
     header.includes('conversation') ||
@@ -285,19 +305,18 @@ function detailCard(header, value) {
   return `
     <div class="detail-card ${full ? 'full' : ''}">
       <span class="detail-label">
-        ${escapeHTML(header)}
+        ${escapeHTML(label)}
       </span>
-      <div class="detail-value">${renderLinkValue(value, 'Open link', header)}</div>
+        <div class="detail-value">${renderLinkValue(safeValue, 'Open link', header)}</div>
     </div>
   `;
 }
 
 function renderLinkValue(value, linkLabel = 'Open link', header = '') {
   const cleaned = cleanDetailValue(value);
-  if (!cleaned) return '-';
+  if (!cleaned) return '—';
 
-  const linkField = header === 'Editorial documents' ||
-    header === 'Log of the conversation';
+  const linkField = LINK_FIELDS.has(header);
 
   if (!linkField) return escapeHTML(cleaned);
 
@@ -336,24 +355,33 @@ function openDetails(row) {
     )
   );
 
+  DETAIL_GROUPS.flatMap(section => section.fields)
+    .filter(field => DETAIL_HEADERS.includes(field))
+    .forEach(field => {
+      detailFields.add(field);
+    });
+
   const sections = DETAIL_GROUPS
     .map(section => {
-      const fields = section.fields.filter(
-        field =>
-          detailFields.has(field) &&
-          row[field]
-      );
+      const isLinksSection = section.title === 'Editorial Documents';
+      const fields = section.fields.filter(field => detailFields.has(field));
 
       fields.forEach(field => detailFields.delete(field));
 
       if (!fields.length) return '';
 
       return `
-        <section class="detail-section">
+        <section class="detail-section ${[
+          'Show Level Information',
+          'Editorial Tagging & Information',
+          'Editorial Corner | Actionables',
+          'Editorial Documents',
+          'Author Information'
+        ].includes(section.title) ? 'detail-four-column' : ''}">
           <div class="detail-section-heading">
             <span class="eyebrow">${escapeHTML(section.title)}</span>
           </div>
-          <div class="detail-grid">
+          <div class="detail-grid ${isLinksSection ? 'detail-links-grid' : ''}">
             ${fields
               .map(field =>
                 detailCard(field, row[field])
@@ -365,27 +393,32 @@ function openDetails(row) {
     })
     .join('');
 
-  const remainingFields = [
-    ...detailFields
-  ].filter(field => row[field]);
+  const remainingFields = [...detailFields].filter(field =>
+    Object.prototype.hasOwnProperty.call(row, field)
+  );
 
   const remainingSection = '';
 
   $('detailsContent').innerHTML = `
-    <section class="retention-chart-grid">
+    <section id="retentionChartGrid" class="retention-chart-grid">
       <article id="retentionChartSection" class="retention-chart-section hidden">
         <div class="detail-section-heading">
-          <strong>Normalised Ret. Performance</strong>
+          <strong>Normalised Live Ret. - H1 Base <span id="normalisedBenchmarkSuffix" class="benchmark-heading-suffix"></span></strong>
+          <span class="retention-chart-note">Unlock Hour Bucket H14 Onwards</span>
         </div>
         <div id="retentionControls" class="retention-controls"></div>
-        <p id="retentionMeta" class="retention-meta"></p>
+        <div class="retention-meta-row">
+          <p id="retentionMeta" class="retention-meta"></p>
+          <div id="retentionRangeControls" class="retention-range-controls"></div>
+        </div>
         <div class="retention-chart-wrap">
           <canvas id="retentionChart"></canvas>
         </div>
       </article>
       <article id="ppvRetentionChartSection" class="retention-chart-section hidden">
         <div class="detail-section-heading">
-          <strong>PPV Benchmarks</strong>
+          <strong>PPV Benchmarks - H10 Base <span id="ppvBenchmarkSuffix" class="benchmark-heading-suffix"></span></strong>
+          <span class="retention-chart-note">H1-H40 US+ROW1, H50-H100 US Only</span>
         </div>
         <div id="ppvRetentionControls" class="retention-controls"></div>
         <p id="ppvRetentionMeta" class="retention-meta"></p>
@@ -401,11 +434,57 @@ function openDetails(row) {
 
   $('detailsModal').classList.remove('hidden');
   state.retentionView = 'normalised overall';
+  state.retentionCardView = 'combined';
   state.ppvMaxHour = null;
   state.ppvView = 'xyz';
   setupRetentionControls(row);
   setupPPVControls(row);
   renderRetentionCharts(row);
+  setupRetentionCardViewControls(row);
+}
+
+function setupRetentionCardViewControls(showRow) {
+  const container = $('retentionCardViewControls');
+  if (!container) return;
+
+  const options = [
+    ['combined', 'Combined'],
+    ['normalised', 'H1 Base'],
+    ['ppv', 'H10 Base']
+  ];
+  container.innerHTML = `
+    <div class="retention-card-view-selector">
+      <span>View</span>
+      <div class="retention-pill-group">
+        ${options.map(([value, label]) => `
+          <button class="retention-control-option ${state.retentionCardView === value ? 'active' : ''}" type="button" data-retention-card-view="${value}">${label}</button>
+        `).join('')}
+      </div>
+    </div>
+  `;
+
+  const applyView = view => {
+    $('retentionChartGrid')?.classList.toggle('single-retention-view', view !== 'combined');
+    $('retentionChartGrid')?.classList.toggle('ppv-retention-view', view === 'ppv');
+    $('retentionChartSection')?.classList.toggle('hidden', view === 'ppv');
+    $('ppvRetentionChartSection')?.classList.toggle('hidden', view === 'normalised');
+
+    const ppvTable = $('ppvRetentionTable');
+    const ppvChartWrap = $('ppvRetentionChart')?.parentElement;
+    if (view === 'ppv') {
+      ppvTable?.classList.toggle('hidden', state.ppvView !== 'xyz');
+      ppvChartWrap?.classList.toggle('hidden', state.ppvView === 'xyz');
+    }
+  };
+
+  applyView(state.retentionCardView);
+  container.querySelectorAll('[data-retention-card-view]').forEach(button => {
+    button.addEventListener('click', () => {
+      state.retentionCardView = button.dataset.retentionCardView;
+      if (showRow) renderPPVView(showRow);
+      setupRetentionCardViewControls(showRow);
+    });
+  });
 }
 
 function retentionFieldEntries(row) {
@@ -434,45 +513,49 @@ const RETENTION_VALUE_LABELS_PLUGIN = {
   id: 'retentionValueLabels',
 
   afterDatasetsDraw(chart) {
-    const targetHours = new Set([5, 10, 50, 100]);
     const labels = chart.data.labels || [];
     const labelOptions = chart.options.plugins.retentionValueLabels || {};
+    if (labelOptions.disabled) return;
+    const targetHours = new Set(labelOptions.targetHours || [5, 10, 50, 100]);
+    const isPPVBenchmark = Boolean(labelOptions.isPPVBenchmark);
     const firstBelowBenchmark = labelOptions.firstBelowBenchmark;
     const firstBelowIndex = firstBelowBenchmark
       ? chart.data.datasets[0]?.data.findIndex((value, index) => {
           const benchmark = chart.data.datasets[1]?.data[index];
-          return Number.isFinite(Number(value)) &&
-            Number.isFinite(Number(benchmark)) &&
-            Number(value) < Number(benchmark);
+          const actualValue = Number(value?.y ?? value);
+          const benchmarkValue = Number(benchmark?.y ?? benchmark);
+          return Number.isFinite(actualValue) &&
+            Number.isFinite(benchmarkValue) &&
+            actualValue < benchmarkValue;
         })
       : -1;
 
     const context = chart.ctx;
     const chartArea = chart.chartArea;
-    const boxHeight = 20;
-    const boxGap = 6;
+    const boxHeight = 18;
+    const boxGap = 4;
     const laneHeight = boxHeight + boxGap;
-    const boxPadding = 7;
+    const boxPadding = 5;
 
     if (!chartArea) return;
 
     context.save();
+    const placedBoxes = [];
 
     chart.data.datasets.slice(0, 2).forEach((dataset, datasetIndex) => {
       const meta = chart.getDatasetMeta(datasetIndex);
       if (!dataset || !meta) return;
 
-      let annotationIndex = 0;
-
       meta.data.forEach((point, index) => {
         const hourMatch = String(labels[index]).match(/^H(\d+)$/);
-        const value = Number(dataset.data[index]);
+        const value = Number(dataset.data[index]?.y ?? dataset.data[index]);
 
         const shouldLabel = firstBelowBenchmark
           ? index === firstBelowIndex
           : hourMatch && targetHours.has(Number(hourMatch[1]));
 
-        if (!shouldLabel || !Number.isFinite(value)) {
+        const pointInView = point.x >= chartArea.left && point.x <= chartArea.right;
+        if (!shouldLabel || !pointInView || !Number.isFinite(value) || Math.abs(value) < 0.05) {
           return;
         }
 
@@ -484,19 +567,37 @@ const RETENTION_VALUE_LABELS_PLUGIN = {
           ? `Actual - ${value.toFixed(1)}%`
           : `BM - ${value.toFixed(1)}%`;
 
-        context.font = '600 10px Inter, sans-serif';
+        context.font = '600 9px Inter, sans-serif';
         const boxWidth = context.measureText(valueLabel).width + boxPadding * 2;
         const boxX = Math.max(
           chartArea.left,
           Math.min(point.x - boxWidth / 2, chartArea.right - boxWidth)
         );
-        const lane = datasetIndex * 2 + (annotationIndex % 2);
-        const boxY = chartArea.top + lane * laneHeight + 4;
-        annotationIndex += 1;
-        const connectorX = Math.max(
-          boxX + 8,
-          Math.min(point.x, boxX + boxWidth - 8)
+        const clampY = value => Math.max(
+          chartArea.top + 2,
+          Math.min(value, chartArea.bottom - boxHeight - 2)
         );
+        // Keep benchmark callouts above actual callouts at every shared hour.
+        // The collision fallback still moves boxes when the chart edge or a
+        // neighbouring label leaves no room in the preferred lane.
+        const preferredAbove = datasetIndex === 1;
+        const candidateYs = preferredAbove
+          ? [point.y - boxHeight - 10, point.y + 10]
+          : [point.y + 10, point.y - boxHeight - 10];
+        let boxY = clampY(candidateYs[0]);
+        let candidateIndex = 0;
+        while (candidateIndex < 12 && placedBoxes.some(box =>
+          boxX < box.right + 8 && boxX + boxWidth > box.left - 8 &&
+          boxY < box.bottom + 5 && boxY + boxHeight > box.top - 5
+        )) {
+          candidateIndex += 1;
+          const direction = candidateIndex % 2 ? 1 : -1;
+          const step = Math.ceil(candidateIndex / 2) * (boxHeight + 4);
+          boxY = clampY(candidateYs[0] + direction * step);
+        }
+        placedBoxes.push({ left: boxX, right: boxX + boxWidth, top: boxY, bottom: boxY + boxHeight });
+        const connectorX = Math.max(boxX + 8, Math.min(point.x, boxX + boxWidth - 8));
+        const connectorY = boxY > point.y ? boxY : boxY + boxHeight;
         const borderColor = datasetIndex === 0
           ? '#8ee6a8'
           : '#f2f5f8';
@@ -505,8 +606,20 @@ const RETENTION_VALUE_LABELS_PLUGIN = {
         context.lineWidth = 1;
         context.beginPath();
         context.moveTo(point.x, point.y);
-        context.lineTo(connectorX, boxY + boxHeight);
+        context.lineTo(connectorX, connectorY);
         context.stroke();
+
+        // Extend each callout down to the x-axis so its hour remains easy to
+        // associate with the label, especially in the dense Overall view.
+        context.save();
+        context.globalAlpha = 0.38;
+        context.setLineDash([3, 3]);
+        context.beginPath();
+        const guideX = isPPVBenchmark ? connectorX : point.x;
+        context.moveTo(guideX, boxY > point.y ? boxY : boxY + boxHeight);
+        context.lineTo(guideX, chartArea.bottom);
+        context.stroke();
+        context.restore();
 
         context.fillStyle = 'rgba(18, 26, 38, .96)';
         context.strokeStyle = borderColor;
@@ -529,53 +642,64 @@ const RETENTION_VALUE_LABELS_PLUGIN = {
 };
 
 function retentionControlMarkup() {
-  const normalisedSections = RETENTION_VIEW_SECTIONS.filter(section =>
-    section.label !== 'PPV Benchmarks'
-  );
-
-  const renderNormalisedSection = section => `
-    <div class="retention-pill-section">
-      <div class="retention-selector-title">${escapeHTML(section.label)}</div>
-      <div class="retention-pill-selectors">
-        <div class="retention-pill-selector">
-          <div class="retention-pill-group">
-            ${[section.rows[0]?.options[0], section.rows[1]?.options[0]].map((option, index) => option && !option.disabled
-              ? `
-                <button
-                  class="retention-control-option ${state.retentionView === option.sheet ? 'active' : ''}"
-                  type="button"
-                  data-retention-sheet="${escapeHTML(option.sheet)}"
-                >
-                  ${index === 0 ? 'Overall' : 'US'}
-                </button>
-              `
-              : ''
-            ).join('')}
-          </div>
-        </div>
-        <div class="retention-pill-selector">
-          <div class="retention-pill-group">
-            ${section.rows[0]?.options.slice(1).map(option => option.disabled
-              ? ''
-              : `
-                <button
-                  class="retention-control-option ${state.retentionView === option.sheet ? 'active' : ''}"
-                  type="button"
-                  data-retention-sheet="${escapeHTML(option.sheet)}"
-                >
-                  ${escapeHTML(option.label)}
-                </button>
-              `
-            ).join('') || ''}
-          </div>
-        </div>
-      </div>
-    </div>
+  const options = [
+    {
+      key: 'normalised',
+      label: 'Normalised',
+      overall: 'normalised overall',
+      us: 'normalised US',
+      usMale: 'normalised US male',
+      usFemale: 'normalised US female',
+      male: 'normalised male',
+      female: 'normalised female'
+    },
+    {
+      key: 'whale',
+      label: 'Whale+',
+      overall: 'Whale+ Overall',
+      us: 'Whale+ US',
+      usMale: 'Whale+ US male',
+      usFemale: 'Whale+ US female',
+      male: 'Whale+ Male',
+      female: 'Whale+ Female'
+    }
+  ];
+  const current = String(state.retentionView || '').toLowerCase();
+  const source = options.find(option => current.startsWith(option.key)) || options[0];
+  const geography = current.includes(' us') ? 'us' : 'overall';
+  const gender = current.endsWith(' male') ? 'male' : current.endsWith(' female') ? 'female' : '';
+  const button = (label, value, attribute, active, disabled = false) => `
+    <button
+      class="retention-control-option ${active ? 'active' : ''}"
+      type="button"
+      data-${attribute}="${escapeHTML(value)}"
+      ${disabled ? 'disabled' : ''}
+    >${escapeHTML(label)}</button>
   `;
 
   return `
     <div class="retention-pill-layout retention-normalised-controls">
-      ${normalisedSections.map(renderNormalisedSection).join('')}
+      <div class="retention-pill-selector">
+        <span>Retention</span>
+        <div class="retention-pill-group">
+          ${options.map(option => button(option.label, option.key, 'retention-source', option.key === source.key)).join('')}
+        </div>
+      </div>
+      <div class="retention-pill-selector">
+        <span>Locale</span>
+        <div class="retention-pill-group">
+          ${button('Overall', 'overall', 'retention-geography', geography === 'overall')}
+          ${button('US', 'us', 'retention-geography', geography === 'us')}
+        </div>
+      </div>
+      <div class="retention-pill-selector">
+        <span>Gender</span>
+        <div class="retention-pill-group">
+          ${button('Male', 'male', 'retention-gender', gender === 'male')}
+          ${button('Female', 'female', 'retention-gender', gender === 'female')}
+        </div>
+      </div>
+      <button class="retention-clear-button" type="button" data-retention-clear>Clear all</button>
     </div>
   `;
 }
@@ -585,26 +709,139 @@ function setupRetentionControls(showRow) {
   if (!container) return;
 
   container.innerHTML = retentionControlMarkup();
+  const rangeContainer = $('retentionRangeControls');
+  if (rangeContainer) {
+    if (state.retentionChartXMin === 10 && state.retentionChartXMax === 50) {
+      state.retentionChartXMax = 20;
+    }
+    const ranges = [
+      ['Overall', 1, 200],
+      ['H1-H20', 1, 20],
+      ['H20-H50', 20, 50],
+      ['50-100', 50, 100],
+      ['100-200', 100, 200]
+    ];
+    rangeContainer.innerHTML = `
+      <span>Hour range</span>
+      <div class="retention-pill-group retention-range-group">
+        ${ranges.map(([label, min, max]) => `
+          <button class="retention-control-option ${state.retentionChartXMin === min && state.retentionChartXMax === max ? 'active' : ''}" type="button" data-retention-range-min="${min}" data-retention-range-max="${max}">${label}</button>
+        `).join('')}
+      </div>
+    `;
+  }
 
-  container
-    .querySelectorAll('[data-retention-sheet]')
-    .forEach(button => {
-      button.addEventListener('click', () => {
-        state.retentionView = button.dataset.retentionSheet;
-        setupRetentionControls(showRow);
-        renderRetentionChart(
-          showRow,
-          state.retentionView,
-          'retentionChart',
-          'retentionChartSection'
-        );
-      });
+  const rerender = sheet => {
+    state.retentionView = sheet;
+    setupRetentionControls(showRow);
+    renderRetentionChart(showRow, state.retentionView, 'retentionChart', 'retentionChartSection');
+  };
+  const current = String(state.retentionView || '').toLowerCase();
+  const sourceFor = key => key === 'whale'
+    ? { overall: 'Whale+ Overall', us: 'Whale+ US', usMale: 'Whale+ US male', usFemale: 'Whale+ US female', male: 'Whale+ Male', female: 'Whale+ Female' }
+    : { overall: 'normalised overall', us: 'normalised US', usMale: 'normalised US male', usFemale: 'normalised US female', male: 'normalised male', female: 'normalised female' };
+  const currentSource = current.startsWith('whale') ? 'whale' : 'normalised';
+  const currentGeography = current.includes(' us') ? 'us' : 'overall';
+  const currentGender = current.endsWith(' male') ? 'male' : current.endsWith(' female') ? 'female' : 'overall';
+  const sourceKeyFor = (geography, gender, source = currentSource) => geography === 'us'
+    ? gender === 'male' ? 'usMale' : gender === 'female' ? 'usFemale' : 'us'
+    : gender;
+
+  container.querySelectorAll('[data-retention-source]').forEach(button => {
+    button.addEventListener('click', () => {
+      const nextSource = button.dataset.retentionSource;
+      const sheets = sourceFor(nextSource);
+      rerender(sheets[sourceKeyFor(currentGeography, currentGender, nextSource)]);
     });
+  });
+  container.querySelectorAll('[data-retention-geography]').forEach(button => {
+    button.addEventListener('click', () => {
+      const nextGeography = button.dataset.retentionGeography;
+      const sheets = sourceFor(currentSource);
+      rerender(sheets[sourceKeyFor(nextGeography, currentGender)]);
+    });
+  });
+  container.querySelectorAll('[data-retention-gender]').forEach(button => {
+    button.addEventListener('click', () => {
+      const sheets = sourceFor(currentSource);
+      rerender(sheets[sourceKeyFor(currentGeography, button.dataset.retentionGender)]);
+    });
+  });
+  rangeContainer?.querySelectorAll('[data-retention-range-min]').forEach(button => {
+    button.addEventListener('click', () => {
+      state.retentionChartXMin = Number(button.dataset.retentionRangeMin);
+      state.retentionChartXMax = Number(button.dataset.retentionRangeMax);
+      setupRetentionControls(showRow);
+      renderRetentionChart(showRow, state.retentionView, 'retentionChart', 'retentionChartSection');
+    });
+  });
+  container.querySelector('[data-retention-clear]')?.addEventListener('click', () => {
+    state.retentionView = 'normalised overall';
+    state.retentionChartXMin = 1;
+    state.retentionChartXMax = 200;
+    setupRetentionControls(showRow);
+    renderRetentionChart(showRow, state.retentionView, 'retentionChart', 'retentionChartSection');
+  });
+}
+
+function elasticThroughForShow(showRow, maxHourOverride = null) {
+  const dataset = retentionDatasetForView('ppv benchmarks');
+  if (!dataset?.isPPVBenchmark || !showRow?.['Show ID']) return null;
+
+  const fallbackRow = dataset.rows.find(row => row['Show ID'] === showRow['Show ID']);
+  const availableHours = dataset.cohortHours.filter(hour =>
+    dataset.cohortRows?.[`${showRow['Show ID']}|${hour}`]
+  );
+  const isPPVTabular = state.ppvView === 'xyz';
+  const maxHour = Number(maxHourOverride ?? fallbackRow?.['PPV Max Hour'] ?? availableHours.at(-1));
+  if (!Number.isFinite(maxHour)) return null;
+
+  const retentionPercent = value => {
+    const numeric = Number.parseFloat(String(value ?? '').replace('%', ''));
+    if (!Number.isFinite(numeric)) return null;
+    return numeric <= 1 ? numeric * 100 : numeric;
+  };
+  const numericValue = value => {
+    const numeric = Number.parseFloat(String(value ?? '').replace(/,/g, ''));
+    return Number.isFinite(numeric) ? numeric : null;
+  };
+  const median = values => {
+    const sorted = [...values].sort((a, b) => a - b);
+    const middle = Math.floor(sorted.length / 2);
+    return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+  };
+
+  let elasticThrough = null;
+  for (const hour of dataset.cohortHours.filter(value => value >= 20 && value <= maxHour)) {
+    const cohortRows = dataset.cohortHours
+      .filter(cohortHour => cohortHour >= hour && cohortHour <= maxHour)
+      .map(cohortHour => dataset.cohortRows?.[`${showRow['Show ID']}|${cohortHour}`])
+      .filter(Boolean);
+    const ldauValues = cohortRows.map(row => numericValue(row['H10 LDAU'])).filter(value => value !== null);
+    const retentionValues = cohortRows
+      .map(row => retentionPercent(row[`H${hour} Ret% Nth TD`]))
+      .filter(value => value !== null);
+    if (ldauValues.length < 2 || retentionValues.length < 2) break;
+
+    const ldauMedian = median(ldauValues);
+    const ldauMinimum = ldauValues.every(value => value >= 100);
+    const ldauStable = ldauMedian !== 0 && ldauValues.every(value => value >= ldauMedian * 0.8);
+    const retentionStable = Math.max(...retentionValues) - Math.min(...retentionValues) <= 10;
+    if (!ldauMinimum || !ldauStable || !retentionStable) break;
+    elasticThrough = hour;
+  }
+  return elasticThrough;
+}
+
+function elasticFilterLabel(showRow) {
+  const elasticThrough = elasticThroughForShow(showRow);
+  return elasticThrough ? `Elastic till H${elasticThrough}` : 'Not Elastic';
 }
 
 function setupPPVControls(showRow) {
   const container = $('ppvRetentionControls');
   const dataset = retentionDatasetForView('ppv benchmarks');
+  const isPPVTabular = state.ppvView === 'xyz';
 
   if (!container || !dataset?.isPPVBenchmark) return;
 
@@ -622,11 +859,15 @@ function setupPPVControls(showRow) {
   const cohortRow = dataset.cohortRows?.[
     `${showRow['Show ID']}|${state.ppvMaxHour}`
   ];
+  const elasticThrough = elasticThroughForShow(showRow, state.ppvMaxHour);
   const meta = $('ppvRetentionMeta');
   if (meta) {
     const ldau = Number(cohortRow?.['H10 LDAU']);
+    const elasticityLabel = elasticThrough ? `Elastic till H${elasticThrough}` : 'Not elastic';
     meta.textContent = cohortRow
-      ? `H10 LDAU: ${Number.isFinite(ldau) ? ldau.toLocaleString() : '-'}`
+      ? state.ppvView === 'xyz'
+        ? elasticityLabel
+        : `H10 LDAU: ${Number.isFinite(ldau) ? ldau.toLocaleString() : '-'} · ${elasticityLabel}`
       : 'No PPV benchmark data for this show.';
   }
 
@@ -642,7 +883,7 @@ function setupPPVControls(showRow) {
                 class="retention-control-option ${state.ppvMaxHour === hour ? 'active' : ''}"
                 type="button"
                 data-ppv-max-hour="${hour}"
-                ${available ? '' : 'disabled'}
+                ${available && !isPPVTabular ? '' : 'disabled'}
               >
                 H${hour}
               </button>
@@ -653,7 +894,7 @@ function setupPPVControls(showRow) {
       <div class="retention-pill-selector">
         <span>View</span>
         <div class="retention-pill-group">
-          ${['graph', 'xyz'].map(view => `
+          ${['xyz', 'graph'].map(view => `
             <button
               class="retention-control-option ${state.ppvView === view ? 'active' : ''}"
               type="button"
@@ -703,12 +944,15 @@ function renderPPVView(showRow) {
   const table = $('ppvRetentionTable');
 
   section?.classList.remove('hidden');
+  updatePPVBenchmarkHeading(showRow);
 
   if (state.ppvView === 'xyz') {
     chartWrap?.classList.add('hidden');
     if (table) {
       table.classList.remove('hidden');
       table.innerHTML = renderPPVXYZTable(showRow);
+      setupPPVTableTooltips(table);
+      bindPPVThresholdControls(table, () => renderPPVView(showRow));
     }
     return;
   }
@@ -718,16 +962,74 @@ function renderPPVView(showRow) {
   renderRetentionChart(showRow, 'ppv benchmarks', 'ppvRetentionChart', 'ppvRetentionChartSection');
 }
 
+function updatePPVBenchmarkHeading(showRow) {
+  const suffix = $('ppvBenchmarkSuffix');
+  if (!suffix) return;
+
+  const dataset = retentionDatasetForView('ppv benchmarks');
+  const benchmarkRow = dataset?.cohortBenchmarks?.[
+    `${benchmarkGenreKey(showRow['Genre'])}|${state.ppvMaxHour}`
+  ];
+  const benchmarkGenre = benchmarkRow?.Genre || showRow['Genre'] || 'Genre';
+  const genreKey = benchmarkGenreKey(showRow['Genre']);
+  const benchmarkCode = genreKey === 'romantasy'
+    ? 'TAB'
+    : genreKey === 'romance'
+      ? 'DMB'
+      : 'MVS';
+
+  suffix.textContent = `(${benchmarkGenre} BM - ${benchmarkCode})`;
+}
+
+function ppvThresholdControlsMarkup(legendClass = 'comparer-table-legend') {
+  return `
+    <div class="ppv-legend-controls">
+      <div class="${legendClass}" aria-label="Benchmark ratio legend">
+        <span><i class="comparer-legend-dot comparer-legend-dark-green"></i>&gt; ${state.ppvThresholds.darkGreen.toFixed(1)}x</span>
+        <span><i class="comparer-legend-dot comparer-legend-green"></i>${state.ppvThresholds.green.toFixed(1)}–${state.ppvThresholds.darkGreen.toFixed(1)}x</span>
+        <span><i class="comparer-legend-dot comparer-legend-yellow"></i>${state.ppvThresholds.yellow.toFixed(1)}–${state.ppvThresholds.green.toFixed(1)}x</span>
+        <span><i class="comparer-legend-dot comparer-legend-red"></i>&lt; ${state.ppvThresholds.red.toFixed(1)}x</span>
+      </div>
+      <div class="ppv-threshold-controls" aria-label="Configure benchmark ratio colors">
+        <label>Dark green &gt; <input type="number" min="0" max="10" step="0.1" data-ppv-threshold="darkGreen" value="${state.ppvThresholds.darkGreen.toFixed(1)}" /></label>
+        <label>Green ≥ <input type="number" min="0" max="10" step="0.1" data-ppv-threshold="green" value="${state.ppvThresholds.green.toFixed(1)}" /></label>
+        <label>Yellow ≥ <input type="number" min="0" max="10" step="0.1" data-ppv-threshold="yellow" value="${state.ppvThresholds.yellow.toFixed(1)}" /></label>
+        <label>Red &lt; <input type="number" min="0" max="10" step="0.1" data-ppv-threshold="red" value="${state.ppvThresholds.red.toFixed(1)}" /></label>
+      </div>
+    </div>
+  `;
+}
+
+function bindPPVThresholdControls(container, rerender) {
+  container.querySelectorAll('[data-ppv-threshold]').forEach(input => {
+    input.addEventListener('change', event => {
+      const key = event.target.dataset.ppvThreshold;
+      const value = Number.parseFloat(event.target.value);
+      if (!Number.isFinite(value)) return;
+      const boundedValue = Math.max(0, Math.min(10, value));
+      if (key === 'red' || key === 'yellow') {
+        state.ppvThresholds.red = boundedValue;
+        state.ppvThresholds.yellow = boundedValue;
+      } else {
+        state.ppvThresholds[key] = boundedValue;
+      }
+      if (state.ppvThresholds.green <= state.ppvThresholds.yellow) {
+        state.ppvThresholds.green = Math.min(10, state.ppvThresholds.yellow + 0.1);
+      }
+      if (state.ppvThresholds.darkGreen <= state.ppvThresholds.green) {
+        state.ppvThresholds.darkGreen = Math.min(10, state.ppvThresholds.green + 0.1);
+      }
+      rerender();
+    });
+  });
+}
+
 function renderPPVXYZTable(showRow) {
   const dataset = retentionDatasetForView('ppv benchmarks');
   const availableHours = dataset?.cohortHours?.filter(hour =>
     dataset.cohortRows?.[`${showRow['Show ID']}|${hour}`]
   ) || [];
   const retentionHours = dataset?.cohortHours || [];
-  const benchmarkRow = dataset?.cohortBenchmarks?.[
-    `${benchmarkGenreKey(showRow['Genre'])}|${state.ppvMaxHour}`
-  ];
-
   const retentionPercent = value => {
     const numeric = Number.parseFloat(String(value ?? '').replace('%', ''));
     if (!Number.isFinite(numeric)) return null;
@@ -740,8 +1042,9 @@ function renderPPVXYZTable(showRow) {
     }
 
     const ratio = actual / benchmark;
-    if (ratio > 1) return 'ppv-ratio-green';
-    if (ratio > 0.7) return 'ppv-ratio-yellow';
+    if (ratio > state.ppvThresholds.darkGreen) return 'ppv-ratio-dark-green';
+    if (ratio >= state.ppvThresholds.green) return 'ppv-ratio-green';
+    if (ratio >= state.ppvThresholds.yellow) return 'ppv-ratio-yellow';
     return 'ppv-ratio-red';
   };
 
@@ -750,6 +1053,9 @@ function renderPPVXYZTable(showRow) {
   ).join('');
   const rows = availableHours.map(hour => {
     const row = dataset.cohortRows[`${showRow['Show ID']}|${hour}`];
+    const benchmarkRow = dataset?.cohortBenchmarks?.[
+      `${benchmarkGenreKey(showRow['Genre'])}|${hour}`
+    ];
     const values = retentionHours.map(retentionHour => {
       const value = row[`H${retentionHour} Ret% Nth TD`];
       const actual = retentionPercent(value);
@@ -759,13 +1065,18 @@ function renderPPVXYZTable(showRow) {
       const ratio = Number.isFinite(actual) && Number.isFinite(benchmark) && benchmark !== 0
         ? actual / benchmark
         : null;
-      const title = Number.isFinite(ratio)
-        ? `Actual / benchmark: ${ratio.toFixed(2)}x`
-        : '';
       const className = comparisonClass(actual, benchmark);
+      const visibleDetails = state.retentionCardView === 'ppv';
 
       return Number.isFinite(actual)
-        ? `<td class="${className}"${title ? ` title="${title}"` : ''}>${actual.toFixed(2)}%</td>`
+        ? visibleDetails
+          ? `<td class="${className} ppv-cell-visible-details">
+              <span class="ppv-cell-actual">${actual.toFixed(2)}%</span>
+              <span class="ppv-cell-meta">BM ${Number.isFinite(benchmark) ? `${benchmark.toFixed(2)}%` : '-'} · ${Number.isFinite(ratio) ? `${ratio.toFixed(2)}x` : 'n/a'}</span>
+            </td>`
+          : `<td class="${className} ppv-cell-tooltip" data-tooltip="${escapeHTML(
+              `${actual.toFixed(1)}%\nBM ${Number.isFinite(benchmark) ? `${benchmark.toFixed(1)}%` : '-'}\n${Number.isFinite(ratio) ? `${ratio.toFixed(2)}x` : 'n/a'}`
+            ).replace(/\n/g, '&#10;')}">${actual.toFixed(2)}%</td>`
         : '<td>-</td>';
     });
 
@@ -779,6 +1090,7 @@ function renderPPVXYZTable(showRow) {
   }).join('');
 
   return `
+    ${ppvThresholdControlsMarkup('comparer-table-legend ppv-table-legend')}
     <div class="ppv-xyz-table-wrap">
       <table class="ppv-xyz-table">
         <colgroup>
@@ -797,6 +1109,47 @@ function renderPPVXYZTable(showRow) {
       </table>
     </div>
   `;
+}
+
+function setupPPVTableTooltips(table) {
+  let tooltip = document.getElementById('ppvFloatingTooltip');
+  if (!tooltip) {
+    tooltip = document.createElement('div');
+    tooltip.id = 'ppvFloatingTooltip';
+    tooltip.className = 'ppv-floating-tooltip';
+    document.body.appendChild(tooltip);
+  }
+
+  const hide = () => tooltip.classList.remove('visible');
+  const show = cell => {
+    tooltip.textContent = cell.dataset.tooltip || '';
+    tooltip.classList.add('visible');
+
+    const cellRect = cell.getBoundingClientRect();
+    tooltip.style.left = `${cellRect.left + cellRect.width / 2}px`;
+    tooltip.style.top = `${cellRect.top - 8}px`;
+    tooltip.style.transform = 'translate(-50%, -100%)';
+
+    const tooltipRect = tooltip.getBoundingClientRect();
+    if (tooltipRect.top < 8) {
+      tooltip.style.top = `${cellRect.bottom + 8}px`;
+      tooltip.style.transform = 'translate(-50%, 0)';
+    }
+
+    const updatedRect = tooltip.getBoundingClientRect();
+    if (updatedRect.left < 8) {
+      tooltip.style.left = `${8 + updatedRect.width / 2}px`;
+    } else if (updatedRect.right > window.innerWidth - 8) {
+      tooltip.style.left = `${window.innerWidth - 8 - updatedRect.width / 2}px`;
+    }
+  };
+
+  table.querySelectorAll('.ppv-cell-tooltip, .comparison-cell-tooltip').forEach(cell => {
+    cell.addEventListener('mouseenter', () => show(cell));
+    cell.addEventListener('mouseleave', hide);
+    cell.addEventListener('focus', () => show(cell));
+    cell.addEventListener('blur', hide);
+  });
 }
 
 function retentionDatasetForView(viewKey) {
@@ -825,6 +1178,14 @@ function renderRetentionChart(showRow, viewKey, canvasId, sectionId) {
 
   if (!section || !canvas) return;
 
+  const chartWrap = canvas.parentElement;
+  const status = $(canvasId === 'ppvRetentionChart' ? 'ppvRetentionMeta' : 'retentionMeta');
+  const setChartState = (message) => {
+    section.classList.remove('hidden');
+    chartWrap?.classList.toggle('hidden', Boolean(message));
+    if (status && message) status.textContent = message;
+  };
+
   const dataset = retentionDatasetForView(viewKey);
   const existingChart = typeof Chart !== 'undefined'
     ? Chart.getChart(canvas)
@@ -846,7 +1207,7 @@ function renderRetentionChart(showRow, viewKey, canvasId, sectionId) {
 
   if (!retentionRow) {
     delete state.retentionCharts[viewKey];
-    section.classList.add('hidden');
+    setChartState('No retention data is available for this show in the selected dataset.');
     return;
   }
 
@@ -861,14 +1222,22 @@ function renderRetentionChart(showRow, viewKey, canvasId, sectionId) {
   }
 
   if (!points.length) {
-    section.classList.add('hidden');
+    setChartState('Retention data is available, but no hourly values were found.');
     return;
   }
 
   if (typeof Chart === 'undefined') {
-    section.classList.add('hidden');
+    setChartState('Chart library is still loading. Refresh once to render this chart.');
     return;
   }
+
+  setChartState('');
+
+  const ppvCalloutHours = dataset.isPPVBenchmark
+    ? points
+        .map(point => point.hour)
+        .filter(hour => hour > 20 && hour < Number(retentionRow['PPV Max Hour']))
+    : undefined;
 
   const genreKey = benchmarkGenreKey(showRow['Genre']);
   const benchmarkRow = dataset.isPPVBenchmark
@@ -879,27 +1248,65 @@ function renderRetentionChart(showRow, viewKey, canvasId, sectionId) {
   const benchmarkPoints = benchmarkRow
     ? retentionFieldEntries(benchmarkRow)
     : [];
+  const availableHours = new Set(points.map(point => point.hour));
+  const visibleAvailableHours = [...availableHours]
+    .filter(hour => hour >= state.retentionChartXMin && hour <= state.retentionChartXMax)
+    .sort((a, b) => a - b);
+  const isCombinedNormalisedOverall = !dataset.isPPVBenchmark && state.retentionCardView === 'combined' && String(state.retentionView).toLowerCase() === 'normalised overall' && state.retentionChartXMin === 1 && state.retentionChartXMax === 200;
+  const isH1BaseNormalisedOverall = !dataset.isPPVBenchmark && state.retentionCardView === 'normalised' && String(state.retentionView).toLowerCase() === 'normalised overall' && state.retentionChartXMin === 1 && state.retentionChartXMax === 200;
+  const isH1BaseNormalisedH1H20 = !dataset.isPPVBenchmark && state.retentionCardView === 'normalised' && String(state.retentionView).toLowerCase() === 'normalised overall' && state.retentionChartXMin === 1 && state.retentionChartXMax === 20;
+  const isH1BaseNormalisedH20H50 = !dataset.isPPVBenchmark && state.retentionCardView === 'normalised' && String(state.retentionView).toLowerCase() === 'normalised overall' && state.retentionChartXMin === 20 && state.retentionChartXMax === 50;
+  const isH1BaseNormalisedH50H100 = !dataset.isPPVBenchmark && state.retentionCardView === 'normalised' && String(state.retentionView).toLowerCase() === 'normalised overall' && state.retentionChartXMin === 50 && state.retentionChartXMax === 100;
+  const isH1BaseNormalisedH100H200 = !dataset.isPPVBenchmark && state.retentionCardView === 'normalised' && String(state.retentionView).toLowerCase() === 'normalised overall' && state.retentionChartXMin === 100 && state.retentionChartXMax === 200;
+  const isCombinedNormalisedH1H20 = !dataset.isPPVBenchmark && state.retentionCardView === 'combined' && String(state.retentionView).toLowerCase() === 'normalised overall' && state.retentionChartXMin === 1 && state.retentionChartXMax === 20;
+  const isCombinedNormalisedH20H50 = !dataset.isPPVBenchmark && state.retentionCardView === 'combined' && String(state.retentionView).toLowerCase() === 'normalised overall' && state.retentionChartXMin === 20 && state.retentionChartXMax === 50;
+  const isCombinedNormalisedH50H100 = !dataset.isPPVBenchmark && state.retentionCardView === 'combined' && String(state.retentionView).toLowerCase() === 'normalised overall' && state.retentionChartXMin === 50 && state.retentionChartXMax === 100;
+  const isCombinedNormalisedH100H200 = !dataset.isPPVBenchmark && state.retentionCardView === 'combined' && String(state.retentionView).toLowerCase() === 'normalised overall' && state.retentionChartXMin === 100 && state.retentionChartXMax === 200;
+  const displayHours = dataset.isPPVBenchmark
+    ? visibleAvailableHours
+    : isH1BaseNormalisedOverall
+    ? [1, 5, 10, 20, 50, 100, 120, 150, 200]
+    : isCombinedNormalisedOverall
+    ? [1, 10, 20, 50, 100, 120, 150, 200]
+    : state.retentionChartXMin === 1 && state.retentionChartXMax === 200
+    ? [1, ...Array.from({ length: 20 }, (_, index) => (index + 1) * 10)]
+    : state.retentionChartXMin === 1 && state.retentionChartXMax === 20
+      ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20]
+      : state.retentionChartXMin === 20 && state.retentionChartXMax === 50
+        ? [20, 30, 40, 50]
+        : state.retentionChartXMin === 50 && state.retentionChartXMax === 100
+          ? [50, 60, 70, 80, 90, 100]
+          : state.retentionChartXMin === 100 && state.retentionChartXMax === 200
+            ? [100, 120, 140, 160, 180, 200]
+            : visibleAvailableHours;
   const benchmarkByHour = new Map(
     benchmarkPoints.map(point => [point.hour, point.value])
   );
 
+  const benchmarkCode = benchmarkGenreKey(showRow['Genre']) === 'romantasy'
+    ? 'TAB'
+    : benchmarkGenreKey(showRow['Genre']) === 'romance'
+      ? 'DMB'
+      : 'MVS';
   const benchmarkLabel = dataset.isPPVBenchmark
-    ? `PPV benchmark (H${retentionRow['PPV Max Hour']})`
-    : showRow['Genre']
-      ? `${showRow['Genre']} benchmark (${
-          benchmarkGenreKey(showRow['Genre']) === 'romantasy'
-            ? 'TAB'
-            : benchmarkGenreKey(showRow['Genre']) === 'romance'
-              ? 'DMB'
-              : 'MVS'
-        })`
-      : 'Genre benchmark';
+    ? `Benchmark (H${retentionRow['PPV Max Hour']})`
+    : 'Benchmark';
+
+  if (!dataset.isPPVBenchmark) {
+    const suffix = $('normalisedBenchmarkSuffix');
+    if (suffix) {
+      const benchmarkGenre = benchmarkRow?.Genre || showRow['Genre'] || 'Genre';
+      suffix.textContent = `(${benchmarkGenre} BM - ${benchmarkCode})`;
+    }
+  }
 
   const datasets = [{
     label: dataset.isPPVBenchmark
       ? 'PPV retention'
-      : 'Normalised retention',
-    data: points.map(point => point.value),
+      : viewKey.toLowerCase().startsWith('whale')
+        ? 'Whale+ Live Retention'
+        : 'Normalised Live Retention',
+    data: points.map(point => ({ x: point.hour, y: point.value })),
     borderColor: '#8ee6a8',
     backgroundColor: 'rgba(142, 230, 168, .14)',
     borderWidth: 2,
@@ -913,7 +1320,7 @@ function renderRetentionChart(showRow, viewKey, canvasId, sectionId) {
   if (benchmarkPoints.length) {
     datasets.push({
       label: benchmarkLabel,
-      data: points.map(point => benchmarkByHour.get(point.hour)),
+      data: points.map(point => ({ x: point.hour, y: benchmarkByHour.get(point.hour) })),
       borderColor: '#f2f5f8',
       backgroundColor: 'transparent',
       borderWidth: 1.5,
@@ -946,7 +1353,22 @@ function renderRetentionChart(showRow, viewKey, canvasId, sectionId) {
       },
       plugins: {
         retentionValueLabels: {
-          firstBelowBenchmark: dataset.isPPVBenchmark
+          targetHours: dataset.isPPVBenchmark
+            ? ppvCalloutHours
+            : isH1BaseNormalisedH1H20 ? [1, 5, 10, 15, 20]
+            : isH1BaseNormalisedH20H50 ? [20, 30, 40, 50]
+            : isH1BaseNormalisedH50H100 ? [50, 60, 70, 80, 90, 100]
+            : isH1BaseNormalisedH100H200 ? [100, 120, 140, 160, 180, 200]
+            : isH1BaseNormalisedOverall ? [1, 5, 10, 20, 50, 100, 120, 150, 200]
+            : isCombinedNormalisedOverall ? [1, 10, 50, 100]
+              : isCombinedNormalisedH1H20 ? [1, 5, 10, 15, 20]
+              : isCombinedNormalisedH20H50 ? [20, 30, 40, 50]
+              : isCombinedNormalisedH50H100 ? [50, 60, 70, 80, 90, 100]
+              : isCombinedNormalisedH100H200 ? [100, 120, 140, 160, 180, 200]
+              : [10, 50, 100],
+          isPPVBenchmark: dataset.isPPVBenchmark,
+          disabled: false,
+          firstBelowBenchmark: false
         },
         legend: {
           display: datasets.length > 1,
@@ -962,16 +1384,27 @@ function renderRetentionChart(showRow, viewKey, canvasId, sectionId) {
         },
         tooltip: {
           callbacks: {
+            title: items => {
+              const hour = items[0]?.parsed?.x;
+              return Number.isFinite(hour) ? `H${hour}` : '';
+            },
             label: context => ` ${context.parsed.y.toFixed(1)}%`
           }
         }
       },
       scales: {
         x: {
+          type: 'linear',
+          min: dataset.isPPVBenchmark ? points[0]?.hour : state.retentionChartXMin,
+          max: dataset.isPPVBenchmark ? points.at(-1)?.hour : state.retentionChartXMax,
           ticks: {
             color: '#8e98a9',
             maxTicksLimit: 20,
-            maxRotation: 0
+            maxRotation: 0,
+            callback: value => displayHours.includes(Number(value)) ? `H${value}` : ''
+          },
+          afterBuildTicks: scale => {
+            scale.ticks = displayHours.map(value => ({ value }));
           },
           grid: {
             display: false
@@ -1001,7 +1434,9 @@ function allRetentionOptions() {
         .filter(option => !option.disabled)
         .map(option => ({
           ...option,
-          label: `${section.label.replace(/^1 Version: /, '')} · ${row.label} · ${option.label}`
+          label: option.sheet === 'ppv benchmarks'
+            ? 'PPV Benchmarks - Base H10'
+            : `${section.label.replace(/^1 Version: /, '')} · ${row.label} · ${option.label}`
         }))
     )
   ).filter((option, index, options) =>
@@ -1010,18 +1445,22 @@ function allRetentionOptions() {
 
   const desiredOrder = [
     'normalised overall',
-    'normalised US',
     'normalised male',
     'normalised female',
-    'Whale+ Overall',
-    'Whale+ US',
-    'Whale+ Male',
-    'Whale+ Female'
+    'normalised us',
+    'normalised us male',
+    'normalised us female',
+    'whale+ overall',
+    'whale+ male',
+    'whale+ female',
+    'whale+ us',
+    'whale+ us male',
+    'whale+ us female'
   ];
 
   return options.sort((a, b) => {
-    const aIndex = desiredOrder.indexOf(a.sheet);
-    const bIndex = desiredOrder.indexOf(b.sheet);
+    const aIndex = desiredOrder.indexOf(String(a.sheet).toLowerCase());
+    const bIndex = desiredOrder.indexOf(String(b.sheet).toLowerCase());
     const fallbackIndex = desiredOrder.length;
 
     return (aIndex < 0 ? fallbackIndex : aIndex) -
@@ -1036,11 +1475,20 @@ function setupComparer() {
 
   if (!typeSelect || !datalist) return;
 
-  typeSelect.innerHTML = allRetentionOptions()
+  const retentionOptions = [
+    ...allRetentionOptions(),
+    ...(state.comparerMode === 'shows' ? [{
+      sheet: 'comparer tabular',
+      label: 'Tabular · PPV cohorts H20-H100'
+    }] : [])
+  ];
+  typeSelect.innerHTML = retentionOptions
     .map(option => `
       <option value="${escapeHTML(option.sheet)}">${escapeHTML(option.label)}</option>
     `)
     .join('');
+
+  setupPPVTagControls();
 
   datalist.innerHTML = state.allRows
     .map(row => `<option value="${escapeHTML(row['Show ID'])}">${escapeHTML(row['Show Title'])}</option>`)
@@ -1052,6 +1500,7 @@ function setupComparer() {
       .map(row => `<option value="${escapeHTML(row.show_id || row['Show ID'])}">${escapeHTML(row.show_title || row['Show Title'])}</option>`)
       .join('');
   }
+  refreshComparerModeUI();
 }
 
 function compareRowById(dataset, showId) {
@@ -1075,11 +1524,10 @@ const COMPARER_METRICS = [
   ['Activity Days (L30D)', 'L30 activity'],
   ['Throughput (L30D)', 'Throughput'],
   ['Total Throughput (L30D)', 'Total throughput'],
-  ['Overall Editorial conviction', 'Editorial conviction'],
-  ['Subjective Conviction', 'Subjective conviction'],
+  ['Overall Editorial conviction', 'Editorial Conv.'],
+  ['Subjective Conviction', 'Subjective Conv.'],
   ['Show Length', 'Show length'],
   ['Category', 'Category'],
-  ['Priority', 'Priority'],
   ['PPV Tag', 'PPV tag']
 ];
 
@@ -1094,6 +1542,7 @@ function renderComparerMetrics(rowOne, rowTwo) {
 
   const titleOne = rowOne['Show Title'] || rowOne['Show ID'] || 'Show 1';
   const titleTwo = rowTwo['Show Title'] || rowTwo['Show ID'] || 'Show 2';
+  const metricValue = (row, field) => displayMetricValue(row[field]);
 
   container.innerHTML = `
     <div class="metrics-heading">
@@ -1109,19 +1558,189 @@ function renderComparerMetrics(rowOne, rowTwo) {
           ${COMPARER_METRICS.map(([field, label]) => `
             <tr>
               <th>${escapeHTML(label)}</th>
-              <td>${escapeHTML(displayMetricValue(rowOne[field]))}</td>
-              <td>${escapeHTML(displayMetricValue(rowTwo[field]))}</td>
+              <td>${escapeHTML(metricValue(rowOne, field))}</td>
+              <td>${escapeHTML(metricValue(rowTwo, field))}</td>
             </tr>
           `).join('')}
         </tbody>
       </table>
     </div>
-  `;
+    `;
 }
 
 function clearComparerMetrics() {
   const container = $('comparerMetrics');
   if (container) container.innerHTML = '';
+}
+
+function renderComparerPPVTable(showIdOne, showIdTwo, dataset) {
+  const container = $('comparerTable');
+  if (!container) return;
+
+  const rowOne = dataset.rows.find(row => normalized(row['Show ID']) === normalized(showIdOne));
+  const rowTwo = dataset.rows.find(row => normalized(row['Show ID']) === normalized(showIdTwo));
+  const titleOne = rowOne?.['Show Title'] || showIdOne;
+  const titleTwo = rowTwo?.['Show Title'] || showIdTwo;
+  const cohortHours = dataset.cohortHours
+    .filter(hour => hour <= 100)
+    .filter(hour =>
+      dataset.cohortRows?.[`${showIdOne}|${hour}`] ||
+      dataset.cohortRows?.[`${showIdTwo}|${hour}`]
+    );
+  const retentionHours = [...new Set(
+    cohortHours.flatMap(cohortHour => [showIdOne, showIdTwo].flatMap(showId => {
+      const row = dataset.cohortRows?.[`${showId}|${cohortHour}`];
+      return Object.keys(row || {})
+        .map(field => field.match(/^H(\d+) Ret% Nth TD$/i))
+        .filter(Boolean)
+        .map(match => Number(match[1]));
+    }))
+  )].filter(hour => hour <= 100).sort((a, b) => a - b);
+  const percent = value => {
+    const numeric = Number.parseFloat(String(value ?? '').replace('%', ''));
+    if (!Number.isFinite(numeric)) return null;
+    return numeric <= 1 ? numeric * 100 : numeric;
+  };
+  const count = value => {
+    const numeric = Number.parseFloat(String(value ?? '').replace(/,/g, ''));
+    return Number.isFinite(numeric) ? numeric : null;
+  };
+  const abbreviateTitle = title => {
+    const words = String(title || '').trim().split(/\s+/).filter(Boolean);
+    if (!words.length) return 'Show';
+    if (words.length === 1) return words[0].slice(0, 4).toUpperCase();
+    return words.map(word => word[0]).join('').slice(0, 4).toUpperCase();
+  };
+  const shortTitleOne = abbreviateTitle(titleOne);
+  const shortTitleTwo = abbreviateTitle(titleTwo);
+  const comparisonClass = (actual, benchmark) => {
+    if (actual === null || benchmark === null || benchmark === 0) return '';
+    const ratio = actual / benchmark;
+    if (ratio > state.ppvThresholds.darkGreen) return 'comparer-ratio-dark-green';
+    if (ratio >= state.ppvThresholds.green) return 'comparer-ratio-green';
+    if (ratio >= state.ppvThresholds.yellow) return 'comparer-ratio-yellow';
+    return 'comparer-ratio-red';
+  };
+  const pair = (first, second) => {
+    const a = percent(first);
+    const b = percent(second);
+    const ratio = a !== null && b !== null && b !== 0 ? a / b : null;
+    return {
+      display: ratio === null ? '-' : `${(ratio * 100).toFixed(1)}%`,
+      actual: a,
+      benchmark: b,
+      ratio,
+      hover: `${a === null ? '-' : a.toFixed(1)} / ${b === null ? '-' : b.toFixed(1)}`,
+      className: comparisonClass(a, b)
+    };
+  };
+  const ldauPair = (first, second) => {
+    const actual = count(first);
+    const benchmark = count(second);
+    if (actual === null && benchmark === null) {
+      return { display: '-', hover: '- / -' };
+    }
+    const format = value => value === null ? '-' : value.toLocaleString('en-IN');
+    return {
+      display: `${shortTitleOne} ${format(actual)} / ${shortTitleTwo} ${format(benchmark)}`,
+      hover: `${titleOne}: ${format(actual)} / ${titleTwo}: ${format(benchmark)}`,
+      className: comparisonClass(actual, benchmark)
+    };
+  };
+  const headers = retentionHours.map(hour => `<th>H${hour}</th>`).join('');
+  const rows = cohortHours.map(cohortHour => {
+    const first = dataset.cohortRows?.[`${showIdOne}|${cohortHour}`];
+    const second = dataset.cohortRows?.[`${showIdTwo}|${cohortHour}`];
+    return `
+      <tr>
+        <th>H${cohortHour}</th>
+        ${(() => {
+          const comparison = ldauPair(first?.['H10 LDAU'], second?.['H10 LDAU']);
+          return `<td class="${comparison.className}" title="${escapeHTML(comparison.hover)}">${escapeHTML(comparison.display)}</td>`;
+        })()}
+        ${retentionHours.map(hour =>
+          (() => {
+            const comparison = pair(first?.[`H${hour} Ret% Nth TD`], second?.[`H${hour} Ret% Nth TD`]);
+            return comparison.actual === null
+              ? '<td>-</td>'
+              : `<td class="${comparison.className} comparer-cell-visible-details">
+                  <span class="comparer-cell-actual">${comparison.actual.toFixed(2)}%</span>
+                  <span class="comparer-cell-meta">BM ${comparison.benchmark === null ? '-' : `${comparison.benchmark.toFixed(2)}%`} · ${comparison.ratio === null ? 'n/a' : `${comparison.ratio.toFixed(2)}x`}</span>
+                </td>`;
+          })()
+        ).join('')}
+      </tr>
+    `;
+  }).join('');
+
+  container.innerHTML = `
+    <div class="comparer-table-heading">
+      <strong>PPV cohort comparison through H100</strong>
+      <span>Actual / benchmark: ${escapeHTML(titleOne)} / ${escapeHTML(titleTwo)}</span>
+    </div>
+    ${ppvThresholdControlsMarkup('comparer-table-legend')}
+    <div class="comparer-table-wrap">
+      <table class="comparer-retention-table">
+        <thead><tr><th>Cohort</th><th>H10 LDAU</th>${headers}</tr></thead>
+        <tbody>${rows || '<tr><td colspan="3">No PPV cohort data available.</td></tr>'}</tbody>
+      </table>
+    </div>
+  `;
+  bindPPVThresholdControls(container, () => renderComparerPPVTable(showIdOne, showIdTwo, dataset));
+}
+
+function renderComparerTable(rowOne, rowTwo) {
+  const container = $('comparerTable');
+  if (!container) return;
+
+  const titleOne = rowOne['Show Title'] || rowOne['Show ID'] || 'Show 1';
+  const titleTwo = rowTwo['Show Title'] || rowTwo['Show ID'] || 'Show 2';
+  const pointsOne = retentionFieldEntries(rowOne);
+  const pointsTwo = retentionFieldEntries(rowTwo);
+  const pointMapOne = new Map(pointsOne.map(point => [point.hour, point.value]));
+  const pointMapTwo = new Map(pointsTwo.map(point => [point.hour, point.value]));
+  const hours = [...new Set([...pointMapOne.keys(), ...pointMapTwo.keys()])]
+    .sort((a, b) => a - b);
+
+  const rows = hours.map(hour => {
+    const actual = pointMapOne.get(hour);
+    const benchmark = pointMapTwo.get(hour);
+    const gap = Number.isFinite(actual) && Number.isFinite(benchmark)
+      ? actual - benchmark
+      : null;
+    const gapClass = gap === null
+      ? ''
+      : gap >= 0 ? 'comparer-gap-positive' : 'comparer-gap-negative';
+
+    return `
+      <tr>
+        <th>H${hour}</th>
+        <td>${Number.isFinite(actual) ? `${actual.toFixed(2)}%` : '-'}</td>
+        <td>${Number.isFinite(benchmark) ? `${benchmark.toFixed(2)}%` : '-'}</td>
+        <td class="${gapClass}">${gap === null ? '-' : `${gap >= 0 ? '+' : ''}${gap.toFixed(2)} pts`}</td>
+      </tr>
+    `;
+  }).join('');
+
+  container.innerHTML = `
+    <div class="comparer-table-heading">
+      <strong>Tabular retention comparison</strong>
+      <span>First show is actual; second show is benchmark.</span>
+    </div>
+    <div class="comparer-table-wrap">
+      <table class="comparer-retention-table">
+        <thead>
+          <tr>
+            <th>Hour</th>
+            <th>${escapeHTML(titleOne)}</th>
+            <th>${escapeHTML(titleTwo)} (benchmark)</th>
+            <th>Gap</th>
+          </tr>
+        </thead>
+        <tbody>${rows || '<tr><td colspan="4">No retention points available.</td></tr>'}</tbody>
+      </table>
+    </div>
+  `;
 }
 
 function renderComparison() {
@@ -1130,16 +1749,38 @@ function renderComparison() {
   const analysis = $('comparerAnalysis');
   const typeSelect = $('compareRetentionType');
   const resultGrid = $('comparerResultGrid');
+  const comparerTable = $('comparerTable');
   const comparerCard = $('comparerCard');
 
   if (!canvas || !status || !analysis || !typeSelect) return;
 
   const showIdOne = $('compareShowIdOne').value.trim();
   const showIdTwo = $('compareShowIdTwo').value.trim();
+  const isTagMode = state.comparerMode === 'ppv-tags';
+  const isTabular = typeSelect.value === 'comparer tabular';
+  if (isTagMode) {
+    state.comparerChartHours = null;
+    resultGrid?.classList.remove('hidden');
+    comparerTable?.classList.add('hidden');
+    comparerCard?.classList.remove('comparer-card-empty');
+    clearComparerMetrics();
+    if (typeSelect.value === 'comparer tabular') {
+      typeSelect.value = allRetentionOptions()[0]?.sheet || 'normalised overall';
+    }
+    renderPPVTagComparison(typeSelect.value);
+    return;
+  }
   if (resultGrid) {
     resultGrid.classList.toggle(
       'hidden',
-      !showIdOne && !showIdTwo
+      (!showIdOne && !showIdTwo) || isTabular
+    );
+  }
+  analysis.classList.toggle('hidden', isTabular);
+  if (comparerTable) {
+    comparerTable.classList.toggle(
+      'hidden',
+      !isTabular || !showIdOne || !showIdTwo
     );
   }
   if (comparerCard) {
@@ -1154,7 +1795,9 @@ function renderComparison() {
     state.comparerChart = null;
   }
 
-  const dataset = retentionDatasetForView(typeSelect.value);
+  const dataset = retentionDatasetForView(
+    isTabular ? 'ppv benchmarks' : typeSelect.value
+  );
   const rowOne = compareRowById(dataset, showIdOne);
   const rowTwo = compareRowById(dataset, showIdTwo);
 
@@ -1162,6 +1805,7 @@ function renderComparison() {
     status.textContent = '';
     analysis.textContent = '';
     clearComparerMetrics();
+    if (comparerTable) comparerTable.innerHTML = '';
     return;
   }
 
@@ -1169,6 +1813,7 @@ function renderComparison() {
     status.textContent = 'One or both Show IDs were not found for this retention type.';
     analysis.textContent = '';
     clearComparerMetrics();
+    if (comparerTable) comparerTable.innerHTML = '';
     return;
   }
 
@@ -1188,6 +1833,10 @@ function renderComparison() {
     operationalRowByInput(showIdTwo) || rowTwo
   );
 
+  if (isTabular) {
+    renderComparerPPVTable(rowOne['Show ID'], rowTwo['Show ID'], dataset);
+  }
+
   const average = points => points.length
     ? points.reduce((sum, point) => sum + point.value, 0) / points.length
     : null;
@@ -1200,16 +1849,18 @@ function renderComparison() {
     ? 'not available'
     : `${Math.abs(averageDifference).toFixed(1)} percentage points ${averageDifference >= 0 ? 'higher' : 'lower'}`;
 
-  const firstBelowBenchmark = (row, points) => {
-    const benchmarkRow = dataset.isPPVBenchmark
-      ? dataset.cohortBenchmarks?.[
-          `${normalized(row['Genre'])}|${row['PPV Max Hour']}`
-        ]
-      : dataset.benchmarks?.[benchmarkGenreKey(row['Genre'])];
-    if (!benchmarkRow) return null;
+  const benchmarkRowFor = row => dataset.isPPVBenchmark
+    ? dataset.cohortBenchmarks?.[
+        `${benchmarkGenreKey(row['Genre'])}|${row['PPV Max Hour']}`
+      ]
+    : dataset.benchmarks?.[benchmarkGenreKey(row['Genre'])];
 
+  const benchmarkPointsFor = row =>
+    retentionFieldEntries(benchmarkRowFor(row));
+
+  const firstBelowBenchmark = (row, points) => {
     const benchmarkByHour = new Map(
-      retentionFieldEntries(benchmarkRow).map(point => [point.hour, point.value])
+      benchmarkPointsFor(row).map(point => [point.hour, point.value])
     );
 
     return points.find(point => {
@@ -1225,47 +1876,108 @@ function renderComparison() {
       : 'not reached in available hours';
   };
 
+  const formatLdau = value => {
+    const numeric = Number.parseFloat(String(value ?? '').replace(/,/g, ''));
+    return Number.isFinite(numeric) ? numeric.toLocaleString('en-IN') : '-';
+  };
+  const ldauAnalysis = !isTabular && !dataset.isPPVBenchmark
+    ? `LDAU: ${rowOne['Show Title'] || showIdOne} ${formatLdau(rowOne.LDAU)} · ${rowTwo['Show Title'] || showIdTwo} ${formatLdau(rowTwo.LDAU)}.`
+    : null;
+
   analysis.textContent = [
-    `${rowOne['Show Title'] || showIdOne} averages ${averageOne === null ? '-' : `${averageOne.toFixed(1)}%`} versus ${rowTwo['Show Title'] || showIdTwo} at ${averageTwo === null ? '-' : `${averageTwo.toFixed(1)}%`} (${differenceText}).`,
+    ldauAnalysis,
     `First below benchmark: ${rowOne['Show Title'] || showIdOne} at ${belowBenchmarkText(rowOne, pointsOne)}; ${rowTwo['Show Title'] || showIdTwo} at ${belowBenchmarkText(rowTwo, pointsTwo)}.`
-  ].join('\n');
+  ].filter(Boolean).join('\n');
+
+  if (isTabular) return;
 
   const hours = [...new Set([
     ...pointsOne.map(point => point.hour),
     ...pointsTwo.map(point => point.hour)
   ])].sort((a, b) => a - b);
 
+  const benchmarkPointsOne = benchmarkPointsFor(rowOne);
+  const benchmarkPointsTwo = benchmarkPointsFor(rowTwo);
+  const benchmarkMapOne = new Map(
+    benchmarkPointsOne.map(point => [point.hour, point.value])
+  );
+  const benchmarkMapTwo = new Map(
+    benchmarkPointsTwo.map(point => [point.hour, point.value])
+  );
+  const titleOne = rowOne['Show Title'] || showIdOne;
+  const titleTwo = rowTwo['Show Title'] || showIdTwo;
+  const useCohortSpacing = dataset.isPPVBenchmark;
+  const chartHours = useCohortSpacing ? hours : null;
+  const chartLabels = useCohortSpacing ? hours.map(hour => `H${hour}`) : undefined;
+  const chartData = values => useCohortSpacing
+    ? hours.map(hour => values.get(hour) ?? null)
+    : hours.map(hour => ({ x: hour, y: values.get(hour) ?? null }));
+  const datasets = [
+    {
+      label: `${titleOne} (actual)`,
+      data: chartData(pointMapOne),
+      borderColor: '#ff5964',
+      backgroundColor: 'transparent',
+      borderWidth: 2,
+      pointRadius: 2,
+      pointHoverRadius: 5,
+      spanGaps: true,
+      tension: .25
+    },
+    {
+      label: `${titleTwo} (actual)`,
+      data: chartData(pointMapTwo),
+      borderColor: '#78e7f0',
+      backgroundColor: 'transparent',
+      borderWidth: 2,
+      pointRadius: 2,
+      pointHoverRadius: 5,
+      spanGaps: true,
+      tension: .25
+    }
+  ];
+
+  const sameGenre = normalized(rowOne['Genre']) === normalized(rowTwo['Genre']);
+
+  if (benchmarkPointsOne.length) {
+    datasets.push({
+      label: sameGenre ? 'Benchmark' : `${titleOne} (benchmark)`,
+      data: chartData(benchmarkMapOne),
+      borderColor: sameGenre ? '#ffffff' : '#ff5964',
+      backgroundColor: 'transparent',
+      borderWidth: 1.5,
+      borderDash: [6, 5],
+      pointRadius: 0,
+      pointHoverRadius: 4,
+      spanGaps: true,
+      tension: .15
+    });
+  }
+
+  if (!sameGenre && benchmarkPointsTwo.length) {
+    datasets.push({
+      label: `${titleTwo} (benchmark)`,
+      data: chartData(benchmarkMapTwo),
+      borderColor: '#78e7f0',
+      backgroundColor: 'transparent',
+      borderWidth: 1.5,
+      borderDash: [6, 5],
+      pointRadius: 0,
+      pointHoverRadius: 4,
+      spanGaps: true,
+      tension: .15
+    });
+  }
+
   state.comparerChart = new Chart(canvas, {
     type: 'line',
     data: {
-      labels: hours.map(hour => `H${hour}`),
-      datasets: [
-        {
-          label: rowOne['Show Title'] || showIdOne,
-          data: hours.map(hour => pointMapOne.get(hour) ?? null),
-          borderColor: '#ff5964',
-          backgroundColor: 'transparent',
-          borderWidth: 2,
-          pointRadius: 2,
-          pointHoverRadius: 5,
-          spanGaps: true,
-          tension: .25
-        },
-        {
-          label: rowTwo['Show Title'] || showIdTwo,
-          data: hours.map(hour => pointMapTwo.get(hour) ?? null),
-          borderColor: '#78e7f0',
-          backgroundColor: 'transparent',
-          borderWidth: 2,
-          pointRadius: 2,
-          pointHoverRadius: 5,
-          spanGaps: true,
-          tension: .25
-        }
-      ]
+      labels: chartLabels,
+      datasets
     },
-    options: comparisonChartOptions()
+    options: comparisonChartOptions(chartHours, useCohortSpacing ? null : hours)
   });
+  state.comparerChartHours = chartHours;
 }
 
 function reportRowByInput(value) {
@@ -1278,7 +1990,33 @@ function reportRowByInput(value) {
 }
 
 function reportValue(row, field) {
-  return displayMetricValue(row[field]);
+  const cleaned = displayMetricValue(row[field]);
+  if (cleaned === '-') return cleaned;
+
+  const date = cleaned.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})$/);
+  if (date) {
+    const year = date[3].length === 2 ? `20${date[3]}` : date[3];
+    return `${date[1].padStart(2, '0')}/${date[2].padStart(2, '0')}/${year}`;
+  }
+
+  if (/^-?\d+(?:\.\d+)?$/.test(cleaned)) {
+    const numeric = Number(cleaned);
+    return Number.isInteger(numeric)
+      ? numeric.toLocaleString('en-IN')
+      : numeric.toLocaleString('en-IN', { maximumFractionDigits: 2 });
+  }
+
+  if (!/^https?:\/\//i.test(cleaned)) {
+    return cleaned.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
+  }
+
+  return cleaned;
+}
+
+function reportFieldLabel(field, label) {
+  return String(label)
+    .replace(/\bP([1-3])s([12])\b/gi, 'P$1 S$2')
+    .replace(/\bLdau\b/gi, 'LDAU');
 }
 
 function reportTitle(row) {
@@ -1287,6 +2025,99 @@ function reportTitle(row) {
 
 function reportId(row) {
   return row.show_id || row['Show ID'] || '-';
+}
+
+function reportRetentionChartsMarkup() {
+  return `
+    <div class="report-subheading">Retention performance and benchmarks</div>
+    <div class="report-retention-charts">
+      <article class="report-retention-chart">
+        <h4>Normal Overall</h4>
+        <div class="report-retention-chart-wrap"><canvas id="reportNormalOverallChart"></canvas></div>
+        <p id="reportNormalOverallStatus" class="report-chart-status"></p>
+      </article>
+      <article class="report-retention-chart">
+        <h4>Whale+ Overall</h4>
+        <div class="report-retention-chart-wrap"><canvas id="reportWhaleOverallChart"></canvas></div>
+        <p id="reportWhaleOverallStatus" class="report-chart-status"></p>
+      </article>
+    </div>
+  `;
+}
+
+function renderReportRetentionCharts(reportRow) {
+  state.reportCharts ||= {};
+  Object.values(state.reportCharts).forEach(chart => chart?.destroy());
+  state.reportCharts = {};
+
+  const showRow = state.allRows.find(row =>
+    normalized(row['Show ID']) === normalized(reportId(reportRow)) ||
+    normalized(row['Show Title']) === normalized(reportTitle(reportRow))
+  );
+  if (!showRow || typeof Chart === 'undefined') return;
+
+  [
+    ['reportNormalOverallChart', 'reportNormalOverallStatus', 'normalised overall', 'Normalised Live Retention'],
+    ['reportWhaleOverallChart', 'reportWhaleOverallStatus', 'Whale+ Overall', 'Whale+ Live Retention']
+  ].forEach(([canvasId, statusId, viewKey, actualLabel]) => {
+    const canvas = $(canvasId);
+    const status = $(statusId);
+    const dataset = retentionDatasetForView(viewKey);
+    const retentionRow = dataset?.rows?.find(row => normalized(row['Show ID']) === normalized(showRow['Show ID']));
+    const points = retentionFieldEntries(retentionRow);
+    const benchmarkRow = dataset?.benchmarks?.[benchmarkGenreKey(showRow['Genre'])];
+    const benchmarkPoints = retentionFieldEntries(benchmarkRow);
+
+    if (!canvas || !points.length) {
+      if (status) status.textContent = 'No retention data is available for this show.';
+      return;
+    }
+
+    const benchmarkByHour = new Map(benchmarkPoints.map(point => [point.hour, point.value]));
+    state.reportCharts[canvasId] = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels: points.map(point => `H${point.hour}`),
+        datasets: [
+          {
+            label: actualLabel,
+            data: points.map(point => point.value),
+            borderColor: '#8ee6a8',
+            backgroundColor: 'rgba(142, 230, 168, .14)',
+            borderWidth: 2,
+            pointRadius: 2,
+            pointHoverRadius: 4,
+            fill: true,
+            tension: .25,
+            spanGaps: true
+          },
+          ...(benchmarkPoints.length ? [{
+            label: `${showRow['Genre'] || 'Genre'} benchmark`,
+            data: points.map(point => benchmarkByHour.get(point.hour)),
+            borderColor: '#f2f5f8',
+            backgroundColor: 'transparent',
+            borderWidth: 1.5,
+            borderDash: [6, 5],
+            pointRadius: 0,
+            pointHoverRadius: 4,
+            fill: false,
+            tension: .15,
+            spanGaps: true
+          }] : [])
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { intersect: false, mode: 'index' },
+        plugins: { legend: { display: true, position: 'bottom', labels: { color: '#b7c0ce', font: { size: 10 } } } },
+        scales: {
+          x: { ticks: { color: '#8993a3', font: { size: 9 } }, grid: { color: 'rgba(136, 149, 168, .12)' } },
+          y: { beginAtZero: false, suggestedMin: 0, suggestedMax: 100, ticks: { color: '#8993a3', callback: value => `${value}%` }, grid: { color: 'rgba(136, 149, 168, .12)' } }
+        }
+      }
+    });
+  });
 }
 
 function reportRetentionFindings(row) {
@@ -1345,6 +2176,40 @@ function reportFieldGroups(row) {
   const fields = Object.keys(row);
   const assigned = new Set();
   const groups = [];
+  const labels = {
+    show_id: 'Show ID',
+    show_title: 'Show Title',
+    author_id: 'Author ID',
+    show_cohort: 'Show Cohort',
+    editorial_lead: 'Editorial Lead',
+    channel_type: 'Channel Type',
+    sherpa_classification: 'Sherpa Classification',
+    book_completed: 'Book Completed',
+    book_genre: 'Book Genre',
+    stage_label_numbered: 'Stage Label',
+    sub_stage_label_numbered: 'Sub-stage Label',
+    current_testing_state: 'Current Testing State',
+    current_age_bucket: 'Current Age Bucket',
+    show_status: 'Show Status',
+    contract_status: 'Contract Status',
+    wbp_status: 'WBP Status',
+    wbp_sub_status: 'WBP Sub-status',
+    incentive_flag: 'Incentive Flag',
+    published_word_count: 'Published Word Count',
+    published_word_count_l30: 'Published Word Count L30',
+    show_live_length: 'Show Live Length',
+    l7d_active_days: 'L7D Active Days',
+    active_days_l30_distinct: 'Active Days L30 Distinct',
+    author_other_book_l30d_active_days: 'Author Other Book L30D Active Days',
+    ppv_tag: 'PPV Tag',
+    moderation_status: 'Moderation Status',
+    editor_score: 'Editor Score',
+    show_editor_score: 'Show Editor Score',
+    moderation_evaluation_date: 'Moderation Evaluation Date',
+    llm_result: 'LLM Result',
+    llm_score: 'LLM Score',
+    Number: 'Number'
+  };
   const addGroup = (title, keys) => {
     const available = keys.filter(key => fields.includes(key));
     available.forEach(key => assigned.add(key));
@@ -1352,44 +2217,39 @@ function reportFieldGroups(row) {
       title,
       fields: available.map(field => [
         field,
-        field.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase())
+        reportFieldLabel(field, labels[field] || field.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase()))
       ])
     });
   };
 
-  addGroup('Show and contract overview', [
-    'show_id', 'show_title', 'book_id', 'book_title', 'show_cohort',
-    'editor', 'senior_editor', 'channel_type', 'book_genre'
+  addGroup('Show Identity, Quality and Editorial Data', [
+    'show_title', 'show_cohort', 'create_date', 'editor', 'senior_editor',
+    'editorial_lead', 'channel_type', 'sherpa_classification', 'book_genre',
+    'moderation_status', 'editor_score', 'show_editor_score',
+    'moderation_evaluation_date', 'llm_result', 'llm_score'
   ]);
-  addGroup('Status and stage', [
-    'stage_label_numbered', 'sub_stage_label_numbered', 'current_testing_state',
-    'current_age_bucket', 'book_status', 'show_status', 'contract_status',
-    'wbp_status', 'wbp_sub_status', 'incentive_flag', 'ppv_tag'
+  addGroup('Status and Contracting Details', [
+    'book_completed', 'stage_label_numbered', 'sub_stage_label_numbered',
+    'current_testing_state', 'current_age_bucket', 'show_status',
+    'contract_status', 'wbp_status', 'wbp_sub_status', 'incentive_flag', 'ppv_tag',
+    'contract_offered_date', 'contract_signed_date', 'Stage Funnel Stage',
+    'Stage Funnel Bucket', 'Stage Funnel Sub-Bucket'
   ]);
-  addGroup('Publishing and audience', [
+  addGroup('Publishing, activity and milestones', [
     'published_word_count', 'published_word_count_l30', 'show_live_length',
-    'l7d_active_days', 'active_days_l30_distinct', 'author_other_book_l30d_active_days',
+    'l7d_active_days', 'active_days_l30_distinct',
+    'First Chapter Publish Date', 'Last Chapter Publish Date',
     'date_10k', 'date_crossed_50k', 'date_crossed_100k', 'date_crossed_200k',
     'date_crossed_300k', 'date_crossed_400k', 'date_crossed_h1', 'date_crossed_h2',
     'date_crossed_h5', 'date_crossed_h10', 'date_crossed_h20', 'date_crossed_h30',
     'date_crossed_h40'
   ]);
-  addGroup('Editorial and quality', [
-    'moderation_status', 'moderation_evaluation_date', 'editor_score',
-    'llm_result', 'llm_score', 'compact_llm_geo', 'recent_bad_time'
-  ]);
-  addGroup('Retention and testing stages', fields.filter(field =>
-    /^(p1s1|p1s2|p2s1|p2s2|p3s1|p3s2)_/.test(field)
-  ));
-  addGroup('Funnel and milestones', [
-    'Number of books', 'Book rank', 'Auth geography', 'Author book rank (>5k words)',
-    'Stage Funnel Stage', 'Stage Funnel Bucket', 'Stage Funnel Sub-Bucket',
-    'P1 Entered', 'P1 Pass', 'P2 Entered', 'P2 Pass', 'P3 Entered', 'P3 Pass',
-    'H5 BM Met', 'H10 BM Met', 'H20 BM Met', 'H30 BM Met', 'H40 BM Met'
+  addGroup('P3 S1 retention and testing', fields.filter(field => /^p3s1_/.test(field)));
+  addGroup('P3 S2 retention and testing', fields.filter(field => /^p3s2_/.test(field)));
+  addGroup('Author Details', [
+    'author_id', 'author_other_book_l30d_active_days', 'Number of books', 'Book rank', 'Auth geography', 'Author book rank (>5k words)',
   ]);
 
-  const remaining = fields.filter(field => !assigned.has(field));
-  if (remaining.length) addGroup('Other source data', remaining);
   return groups;
 }
 
@@ -1447,7 +2307,6 @@ function renderShowReport() {
   }
 
   const fieldGroups = reportFieldGroups(row);
-  const findings = reportFindings(row);
 
   output.innerHTML = `
     <div class="report-header">
@@ -1459,16 +2318,14 @@ function renderShowReport() {
       <span class="report-status-tag">${escapeHTML(reportValue(row, 'show_status'))}</span>
     </div>
     ${reportGroupMarkup(fieldGroups, row)}
-    <div class="report-analysis">
-      <span>Findings and analysis</span>
-      <ul>${findings.map(finding => `<li>${escapeHTML(finding)}</li>`).join('')}</ul>
-    </div>
+    ${reportRetentionChartsMarkup()}
     <div class="report-notes">
       <span>Retention and benchmark findings</span>
       ${reportRetentionFindings(row).map(finding => `<p>${escapeHTML(finding)}</p>`).join('')}
     </div>
   `;
   output.classList.remove('hidden');
+  renderReportRetentionCharts(row);
   status.textContent = `Report generated for ${reportTitle(row)}.`;
 }
 
@@ -1491,6 +2348,7 @@ function downloadShowReport() {
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 42;
+  const headerHeight = 132;
   let y = 48;
 
   const ensureSpace = height => {
@@ -1514,32 +2372,265 @@ function downloadShowReport() {
   };
 
   doc.setFillColor(15, 23, 42);
-  doc.rect(0, 0, pageWidth, 78, 'F');
-  write('P3 & PPV Shows Slate', { size: 10, color: [242, 13, 91], weight: 'bold', gap: 5 });
-  write(reportTitle(row), { size: 20, color: [255, 255, 255], weight: 'bold', gap: 3 });
-  write(`${reportId(row)} · ${reportValue(row, 'show_status')}`, { size: 9, color: [190, 200, 215], gap: 15 });
+  doc.rect(0, 0, pageWidth, headerHeight, 'F');
+  write('P3 & PPV Shows Slate', { size: 10, color: [242, 13, 91], weight: 'bold', gap: 11 });
+  write(reportTitle(row), { size: 20, color: [255, 255, 255], weight: 'bold', gap: -6 });
+  write(`Show ID - ${reportId(row)}`, { size: 9, color: [196, 211, 230], gap: 8 });
+  y = Math.max(y + 4, headerHeight + 16);
 
   reportFieldGroups(row).forEach(group => {
-    ensureSpace(36);
-    write(group.title, { size: 11, color: [15, 105, 130], weight: 'bold', gap: 5 });
+    // Let long sections flow naturally so pages do not contain large unused gaps.
+    ensureSpace(30);
+    doc.setFillColor(224, 242, 247);
+    doc.roundedRect(margin - 4, y - 12, pageWidth - margin * 2 + 8, 19, 3, 3, 'F');
+    write(group.title, { size: 11, color: [7, 83, 104], weight: 'bold', gap: 5 });
     group.fields.forEach(([field, label]) => {
       const value = reportValue(row, field);
       const text = `${label}: ${value}`;
-      write(text, { size: 8.5, color: [55, 65, 81], gap: 2 });
+      write(text, { size: 9, color: [31, 41, 55], gap: 2 });
     });
     y += 5;
   });
 
-  ensureSpace(50);
-  write('Findings and analysis', { size: 11, color: [15, 105, 130], weight: 'bold', gap: 5 });
-  const findings = reportFindings(row);
-  findings.forEach(finding => write(`• ${finding}`, { size: 8.5, gap: 3 }));
+  const showRow = state.allRows.find(candidate =>
+    normalized(candidate['Show ID']) === normalized(reportId(row)) ||
+    normalized(candidate['Show Title']) === normalized(reportTitle(row))
+  );
+  const addRetentionPdfChart = (label, viewKey) => {
+    const dataset = retentionDatasetForView(viewKey);
+    const retentionRow = dataset?.rows?.find(candidate =>
+      normalized(candidate['Show ID']) === normalized(showRow?.['Show ID'])
+    );
+    const points = retentionFieldEntries(retentionRow);
+    if (!showRow || !points.length) return;
+
+    const benchmarkRow = dataset?.benchmarks?.[benchmarkGenreKey(showRow['Genre'])];
+    const benchmarkByHour = new Map(retentionFieldEntries(benchmarkRow).map(point => [point.hour, point.value]));
+    ensureSpace(205);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(7, 83, 104);
+    doc.text(label, margin, y);
+    const chartLeft = margin + 28;
+    const chartTop = y + 14;
+    const chartWidth = pageWidth - margin * 2 - 36;
+    const chartHeight = 135;
+    const minHour = points[0]?.hour ?? 1;
+    const maxHour = points.at(-1)?.hour ?? minHour;
+    const xForHour = hour => chartLeft + (maxHour === minHour ? 0 : ((hour - minHour) / (maxHour - minHour)) * chartWidth);
+    const xFor = index => xForHour(points[index]?.hour ?? minHour);
+    const yFor = value => chartTop + chartHeight - (Math.max(0, Math.min(100, value)) / 100) * chartHeight;
+
+    doc.setDrawColor(190, 199, 212);
+    doc.setLineWidth(.6);
+    doc.line(chartLeft, chartTop, chartLeft, chartTop + chartHeight);
+    doc.line(chartLeft, chartTop + chartHeight, chartLeft + chartWidth, chartTop + chartHeight);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(100, 116, 139);
+    [0, 25, 50, 75, 100].forEach(value => {
+      const lineY = yFor(value);
+      doc.setDrawColor(225, 230, 237);
+      doc.line(chartLeft, lineY, chartLeft + chartWidth, lineY);
+      doc.setTextColor(100, 116, 139);
+      doc.text(`${value}%`, margin, lineY + 2);
+    });
+
+    const preferredTicks = [1, 5, 10, 20, 50, 100, 120, 150, 200];
+    const tickPoints = points.filter(point => preferredTicks.includes(point.hour));
+    doc.setFontSize(6.5);
+    doc.setTextColor(100, 116, 139);
+    tickPoints.forEach(point => {
+      const index = points.indexOf(point);
+      const x = xFor(index);
+      doc.setDrawColor(210, 218, 228);
+      doc.setLineWidth(.5);
+      doc.line(x, chartTop + chartHeight, x, chartTop + chartHeight + 4);
+      doc.text(`H${point.hour}`, x, chartTop + chartHeight + 13, { align: 'center' });
+    });
+
+    const drawSeries = (series, color, dashed = false) => {
+      const available = series.map((value, index) => ({ value, index })).filter(point => Number.isFinite(point.value));
+      if (!available.length) return;
+      doc.setDrawColor(...color);
+      doc.setLineWidth(dashed ? .8 : 1.5);
+      if (dashed && doc.setLineDashPattern) doc.setLineDashPattern([3, 3], 0);
+      for (let index = 1; index < available.length; index += 1) {
+        const previous = available[index - 1];
+        const current = available[index];
+        doc.line(xFor(previous.index), yFor(previous.value), xFor(current.index), yFor(current.value));
+      }
+      if (dashed && doc.setLineDashPattern) doc.setLineDashPattern([], 0);
+    };
+
+    drawSeries(points.map(point => point.value), [34, 139, 79]);
+    drawSeries(points.map(point => benchmarkByHour.get(point.hour)), [55, 65, 81], true);
+    const legendY = chartTop + chartHeight + 29;
+    doc.setFontSize(7);
+    doc.setLineWidth(1.5);
+    doc.setDrawColor(34, 139, 79);
+    doc.line(chartLeft, legendY, chartLeft + 18, legendY);
+    doc.setTextColor(34, 139, 79);
+    const actualLegend = viewKey.startsWith('Whale') ? 'Whale+ Overall (actual)' : 'Normal Overall (actual)';
+    const actualLegendX = chartLeft + 24;
+    doc.text(actualLegend, actualLegendX, legendY + 2);
+    const benchmarkLegendX = actualLegendX + doc.getTextWidth(actualLegend) + 18;
+    doc.setDrawColor(55, 65, 81);
+    doc.setLineWidth(.8);
+    for (let x = benchmarkLegendX; x < benchmarkLegendX + 18; x += 6) {
+      doc.line(x, legendY, Math.min(x + 3, benchmarkLegendX + 18), legendY);
+    }
+    doc.setTextColor(55, 65, 81);
+    doc.text(`${showRow['Genre'] || 'Genre'} benchmark (dashed)`, benchmarkLegendX + 24, legendY + 2);
+    y = legendY + 17;
+  };
+
+  const addPPVTabularPdf = () => {
+    const dataset = retentionDatasetForView('ppv benchmarks');
+    const availableHours = dataset?.cohortHours?.filter(hour =>
+      dataset.cohortRows?.[`${showRow?.['Show ID']}|${hour}`]
+    ) || [];
+    if (!showRow || !availableHours.length) return;
+
+    const retentionHours = dataset.cohortHours || [];
+    const tableWidth = pageWidth - margin * 2;
+    const firstColumnsWidth = 86;
+    const retentionWidth = Math.max(28, (tableWidth - firstColumnsWidth) / Math.max(1, retentionHours.length));
+    const rowHeight = 24;
+    const headerHeight = 18;
+    const tableHeight = headerHeight + rowHeight * availableHours.length + 62;
+    ensureSpace(tableHeight);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(7, 83, 104);
+    doc.text('PPV Benchmarks - H10 Base (Tabular)', margin, y);
+    y += 14;
+
+    const ratioLegend = [
+      ['> 1.0x', [15, 116, 55]],
+      ['0.7–1.0x', [98, 239, 141]],
+      ['0.5–0.7x', [245, 190, 66]],
+      ['< 0.5x', [255, 95, 115]]
+    ];
+    let legendX = margin;
+    doc.setFontSize(6.5);
+    ratioLegend.forEach(([label, color]) => {
+      doc.setFillColor(...color);
+      doc.circle(legendX + 3, y - 2, 3, 'F');
+      doc.setTextColor(55, 65, 81);
+      doc.text(label, legendX + 9, y);
+      legendX += 62;
+    });
+    y += 8;
+
+    const header = ['Cohort', 'H10 LDAU', ...retentionHours.map(hour => `H${hour}`)];
+    const widths = [42, 44, ...retentionHours.map(() => retentionWidth)];
+    const drawCell = (text, x, width, top, fillColor = null, lines = null) => {
+      if (fillColor) {
+        doc.setFillColor(...fillColor);
+        doc.rect(x, top, width, rowHeight, 'F');
+      }
+      doc.setDrawColor(210, 218, 228);
+      doc.rect(x, top, width, rowHeight);
+      doc.setFont('helvetica', fillColor ? 'bold' : 'normal');
+      doc.setFontSize(fillColor ? 6 : 6.5);
+      doc.setTextColor(fillColor ? 255 : 55, fillColor ? 255 : 65, fillColor ? 255 : 81);
+      doc.text(lines || String(text), x + 3, top + (lines ? 8 : 14), { maxWidth: width - 6 });
+    };
+
+    let x = margin;
+    header.forEach((text, index) => {
+      drawCell(text, x, widths[index], y, [62, 78, 110]);
+      x += widths[index];
+    });
+    y += rowHeight;
+
+    const retentionPercent = value => {
+      const numeric = Number.parseFloat(String(value ?? '').replace('%', ''));
+      return Number.isFinite(numeric) ? (numeric <= 1 ? numeric * 100 : numeric) : null;
+    };
+    availableHours.forEach(cohortHour => {
+      const row = dataset.cohortRows[`${showRow['Show ID']}|${cohortHour}`];
+      const benchmarkRow = dataset.cohortBenchmarks?.[
+        `${benchmarkGenreKey(showRow['Genre'])}|${cohortHour}`
+      ];
+      const values = [
+        `H${cohortHour}`,
+        row?.['H10 LDAU'] || '-',
+        ...retentionHours.map(hour => {
+          const actual = retentionPercent(row?.[`H${hour} Ret% Nth TD`]);
+          const benchmark = retentionPercent(benchmarkRow?.[`H${hour} Ret% Nth TD`]);
+          if (!Number.isFinite(actual)) return '-';
+          return {
+            actual,
+            benchmark,
+            ratio: Number.isFinite(benchmark) && benchmark !== 0 ? actual / benchmark : null
+          };
+        })
+      ];
+      x = margin;
+      values.forEach((value, index) => {
+        if (index < 2 || typeof value === 'string') {
+          drawCell(value, x, widths[index], y);
+        } else {
+          const color = value.ratio === null
+            ? null
+            : value.ratio > state.ppvThresholds.darkGreen
+              ? [15, 116, 55]
+              : value.ratio >= state.ppvThresholds.green
+                ? [88, 232, 133]
+                : value.ratio >= state.ppvThresholds.yellow
+                  ? [245, 190, 66]
+                  : [255, 95, 115];
+          const meta = `BM ${Number.isFinite(value.benchmark) ? `${value.benchmark.toFixed(1)}%` : '-'} · ${Number.isFinite(value.ratio) ? `${value.ratio.toFixed(2)}x` : 'n/a'}`;
+          drawCell('', x, widths[index], y, color, [`${value.actual.toFixed(1)}%`, meta]);
+        }
+        x += widths[index];
+      });
+      y += rowHeight;
+    });
+    y += 14;
+  };
+
+  ensureSpace(420);
+  addRetentionPdfChart('Normal Overall', 'normalised overall');
+  addRetentionPdfChart('Whale+ Overall', 'Whale+ Overall');
+  addPPVTabularPdf();
 
   const filename = `${reportTitle(row).replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'show'}-report.pdf`;
   doc.save(filename);
 }
 
-function comparisonChartOptions() {
+function comparisonChartOptions(cohortHours = null, actualHours = null) {
+  const usesCohortSpacing = Array.isArray(cohortHours);
+  const numericTickValues = () => {
+    if (!actualHours) return null;
+    const rangeMin = state.comparerChartXMin || 1;
+    const rangeMax = state.comparerChartXMax || 200;
+    if (rangeMin === 1 && rangeMax === 200) return [1, 10, 30, 50, 100, 120, 150, 200];
+    if (rangeMin === 1 && rangeMax === 10) return Array.from({ length: 10 }, (_, index) => index + 1);
+    if (rangeMin === 10 && rangeMax === 50) return [10, 20, 30, 40, 50];
+    if (rangeMin === 50 && rangeMax === 100) return [50, 60, 70, 80, 90, 100];
+    if (rangeMin === 100 && rangeMax === 200) return [100, 120, 140, 160, 180, 200];
+    return actualHours.filter(hour => hour >= rangeMin && hour <= rangeMax);
+  };
+  const isPPVBenchmarks = $('compareRetentionType')?.value === 'ppv benchmarks';
+  const overallMin = isPPVBenchmarks ? 20 : 1;
+  const overallMax = isPPVBenchmarks ? 100 : 200;
+  const isOverallRange = (state.comparerChartXMin || overallMin) === overallMin
+    && (state.comparerChartXMax || overallMax) === overallMax;
+  const hourTicks = isPPVBenchmarks
+    ? [20, 30, 40, 50, 60, 70, 80, 90, 100]
+    : [1, 5, 10, 50, 100, 150, 200];
+  const startIndex = usesCohortSpacing
+    ? Math.max(0, cohortHours.findIndex(hour => hour >= state.comparerChartXMin))
+    : null;
+  const endIndex = usesCohortSpacing
+    ? Math.max(0, cohortHours.reduce((lastIndex, hour, index) => (
+      hour <= state.comparerChartXMax ? index : lastIndex
+    ), 0))
+    : null;
+
   return {
     responsive: true,
     maintainAspectRatio: false,
@@ -1560,18 +2651,53 @@ function comparisonChartOptions() {
       },
       tooltip: {
         callbacks: {
-          label: context => ` ${context.parsed.y.toFixed(1)}%`
+          title: items => {
+            const item = items[0];
+            if (!item) return '';
+            const rawHour = usesCohortSpacing
+              ? cohortHours[item.parsed.x]
+              : item.parsed.x ?? item.label;
+            return rawHour === undefined || rawHour === null
+              ? ''
+              : `H${String(rawHour).replace(/^H/i, '')}`;
+          },
+          label: context => ` ${context.parsed.y.toFixed(1)}%`,
+          labelColor: context => {
+            const color = context.dataset?.borderColor || '#b7c0ce';
+            const isBenchmark = /benchmark/i.test(context.dataset?.label || '');
+            return {
+              borderColor: color,
+              backgroundColor: isBenchmark ? 'transparent' : color,
+              borderWidth: isBenchmark ? 2 : 0
+            };
+          }
         }
       }
     },
     scales: {
       x: {
+        type: usesCohortSpacing ? 'category' : 'linear',
+        min: usesCohortSpacing ? startIndex : (state.comparerChartXMin || overallMin),
+        max: usesCohortSpacing ? endIndex : (state.comparerChartXMax || overallMax),
+        afterBuildTicks: axis => {
+          if (usesCohortSpacing) {
+            axis.ticks = hourTicks
+              .map(hour => cohortHours.indexOf(hour))
+              .filter(index => index >= axis.min && index <= axis.max)
+              .map(value => ({ value }));
+            return;
+          }
+          axis.ticks = (numericTickValues() || hourTicks)
+            .filter(value => value >= axis.min && value <= axis.max)
+            .map(value => ({ value }));
+        },
         ticks: {
           color: '#8e98a9',
           maxTicksLimit: 20,
-          maxRotation: 0
+          maxRotation: 0,
+          callback: value => usesCohortSpacing ? `H${cohortHours[value]}` : `H${value}`
         },
-        grid: { display: false }
+        grid: { color: '#293140' }
       },
       y: {
         beginAtZero: true,

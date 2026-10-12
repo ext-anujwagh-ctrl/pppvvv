@@ -1,0 +1,12 @@
+{
+  "name": "p3-plus",
+  "version": "1.0.0",
+  "private": true,
+  "description": "p3-plus static site on Cloudflare Workers",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "preview": "wrangler dev --remote",
+    "tail": "wrangler tail"
+  }
+}

@@ -1,11 +1,125 @@
 /* Filter controls and filtered-row calculations */
 
+function authorFilterBucket(field, value) {
+  const numeric = Number.parseFloat(String(value ?? '').replace(/,/g, ''));
+
+  if (field === 'Registration on Pocket') {
+    const raw = String(value ?? '').trim();
+    let date = null;
+    const match = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/);
+    if (match) {
+      const year = match[3].length === 2 ? 2000 + Number(match[3]) : Number(match[3]);
+      date = new Date(year, Number(match[2]) - 1, Number(match[1]));
+    } else if (Number.isFinite(numeric)) {
+      date = new Date(Date.UTC(1899, 11, 30) + numeric * 86400000);
+    }
+    if (!date || Number.isNaN(date.getTime())) return '';
+    const now = new Date();
+    const oneYearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+    const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate());
+    if (date >= sixMonthsAgo) return 'In last 6mo';
+    if (date >= oneYearAgo) return 'In last 1 yr';
+    return 'Greater than 1 year';
+  }
+
+  if (!Number.isFinite(numeric)) return '';
+  if (field === 'No. of shows on Pocket (>10K WC)') {
+    if (numeric < 5) return '<5';
+    if (numeric < 10) return '5-10';
+    if (numeric < 20) return '10-20';
+    return '20+';
+  }
+  if (field === 'No. of contracted shows on Pocket') {
+    if (numeric < 5) return '<5';
+    if (numeric < 10) return '5-10';
+    if (numeric < 20) return '10 -20';
+    return '20+';
+  }
+  if (field === 'Number of other shows in P3/PPV') {
+    if (numeric < 5) return '<5';
+    if (numeric < 10) return '5-10';
+    return '10+';
+  }
+  if (field === 'Total Throughput (L30D)') {
+    if (numeric < 50000) return '<50k';
+    if (numeric < 100000) return '50-100k';
+    if (numeric < 200000) return '100-200k';
+    if (numeric < 300000) return '200-300k';
+    if (numeric < 400000) return '300-400k';
+    if (numeric < 500000) return '400-500k';
+    return '500k+';
+  }
+  return String(value ?? '').trim();
+}
+
+function authorFilterBucketOrder(field) {
+  return {
+    'Registration on Pocket': ['In last 6mo', 'In last 1 yr', 'Greater than 1 year'],
+    'No. of shows on Pocket (>10K WC)': ['<5', '5-10', '10-20', '20+'],
+    'No. of contracted shows on Pocket': ['<5', '5-10', '10 -20', '20+'],
+    'Number of other shows in P3/PPV': ['<5', '5-10', '10+'],
+    'Total Throughput (L30D)': ['<50k', '50-100k', '100-200k', '200-300k', '300-400k', '400-500k', '500k+']
+  }[field] || [];
+}
+
+const AUTHOR_BUCKET_FIELDS = new Set([
+  'Registration on Pocket',
+  'No. of shows on Pocket (>10K WC)',
+  'No. of contracted shows on Pocket',
+  'Number of other shows in P3/PPV',
+  'Total Throughput (L30D)'
+]);
+
 function filterMarkup(field, index) {
+  const title = field === 'Listener Tag'
+    ? 'Author Listener Tag'
+    : field === 'Completed'
+    ? 'Completed (Yes/No)'
+    : field === 'Subjective Conviction'
+    ? 'Story Subjective Conviction'
+    : field;
   const values = (
+    field === 'Label'
+      ? unique(field).sort((a, b) => {
+          const order = ['blue', 'green', 'yellow', 'red'];
+          const aIndex = order.indexOf(normalized(a));
+          const bIndex = order.indexOf(normalized(b));
+          return (aIndex < 0 ? order.length : aIndex) - (bIndex < 0 ? order.length : bIndex);
+        })
+      : AUTHOR_BUCKET_FIELDS.has(field)
+      ? [...new Set(state.allRows.map(row => authorFilterBucket(field, row[field])).filter(Boolean))]
+          .sort((a, b) => authorFilterBucketOrder(field).indexOf(a) - authorFilterBucketOrder(field).indexOf(b))
+      :
     field === 'Show Length'
       ? SHOW_LENGTH_BUCKETS
+      : field === 'Elastic'
+        ? [...new Set(state.allRows.map(row => elasticFilterLabel(row)))].sort((a, b) => {
+            if (a === 'Not Elastic') return 1;
+            if (b === 'Not Elastic') return -1;
+            return Number(a.match(/H(\d+)/)?.[1] || 0) - Number(b.match(/H(\d+)/)?.[1] || 0);
+          })
       : unique(field)
-  ).filter(value => String(value).trim() !== '');
+  ).filter(value =>
+    String(value).trim() !== '' &&
+    !(field === 'Genre' && normalized(value) === 'column 1') &&
+    !(field === 'Category' && normalized(value) === 'not found')
+  );
+
+  const optionLabel = value => {
+    if (field === 'Label') {
+      const descriptions = {
+        blue: 'Great Ret.',
+        green: 'Good Ret.',
+        yellow: 'Moderate Ret.',
+        red: 'Bad Ret.'
+      };
+      const description = descriptions[normalized(value)];
+      return description ? `${value} (${description})` : filterLabel(value);
+    }
+    if (field === 'Incentive Flag' && String(value).trim() === '0') return 'No (0)';
+    if (field === 'Incentive Flag' && String(value).trim() === '1') return 'Yes (1)';
+    return filterLabel(value);
+  };
 
   state.filters[field] = state.filters[field] || new Set();
 
@@ -19,7 +133,7 @@ function filterMarkup(field, index) {
         class="multi-filter-toggle"
         type="button"
       >
-        <span>${escapeHTML(field)}</span>
+        <span>${escapeHTML(title)}</span>
         <b class="filter-chevron">⌄</b>
       </button>
 
@@ -40,14 +154,17 @@ function filterMarkup(field, index) {
           </button>
         </div>
 
-        <div class="filter-options">
+        <div class="filter-options${values.length > 5 ? ' has-scroll' : ''}">
           ${values.map(value => `
             <label class="filter-option">
               <input
                 type="checkbox"
                 data-filter-value="${escapeHTML(filterKey(value))}"
               />
-              <span>${escapeHTML(filterLabel(value))}</span>
+              <span class="filter-option-label">
+                ${field === 'Label' ? `<span class="show-label-dot show-label-${normalized(value)}"></span>` : ''}
+                ${escapeHTML(optionLabel(value))}
+              </span>
             </label>
           `).join('')}
         </div>
@@ -67,6 +184,8 @@ function setupAllFilters() {
   advancedContainer.innerHTML = ADVANCED_FILTER_HEADERS
     .map(filterMarkup)
     .join('');
+
+  syncOperationalScopeFilters();
 
   const filterContainers = [
     primaryContainer,
@@ -229,6 +348,24 @@ function setupAllFilters() {
   };
 }
 
+function syncOperationalScopeFilters() {
+  const card = document.querySelector('[data-filter-field="PPV Tag"]');
+  if (!card) return;
+
+  const disabled = (state.operationalScope || 'all') !== 'all';
+  const toggle = card.querySelector('.multi-filter-toggle');
+  if (toggle) {
+    toggle.disabled = disabled;
+    toggle.setAttribute('aria-disabled', String(disabled));
+  }
+  card.classList.toggle('filter-disabled', disabled);
+  if (disabled) {
+    card.querySelector('.multi-filter-menu')?.classList.add('hidden');
+    state.filters['PPV Tag'] = new Set();
+    updateFilterButton(card, state.filters['PPV Tag']);
+  }
+}
+
 function updateFilterButton(card, selected) {
   card.classList.toggle(
     'filter-has-selection',
@@ -253,8 +390,23 @@ function applyFilters() {
   const query = normalized(
     $('searchInput').value
   );
+  const operationalScope = state.operationalScope || 'all';
 
   state.filteredRows = state.allRows.filter(row => {
+    const ppvTag = normalized(row['PPV Tag'] || '');
+    const ppvTagKey = ppvTag.replace(/[_-]+/g, ' ');
+    const isP3 = ppvTagKey === 'testing p3' ||
+      (ppvTagKey.includes('p3') && (ppvTagKey.includes('passed') || ppvTagKey.includes('failed')));
+    const isPPV = ppvTagKey === 'ppv';
+
+    if (
+      (operationalScope === 'p3' && !isP3) ||
+      (operationalScope === 'ppv' && !isPPV) ||
+      (operationalScope === 'all-others' && (isP3 || isPPV))
+    ) {
+      return false;
+    }
+
     if (
       query &&
       !Object.values(row).some(value =>
@@ -274,6 +426,12 @@ function applyFilters() {
       const rowValue =
         field === 'Show Length'
           ? showLengthBucket(row[field])
+          : field === 'Elastic'
+            ? filterKey(elasticFilterLabel(row))
+          : AUTHOR_BUCKET_FIELDS.has(field)
+            ? filterKey(authorFilterBucket(field, row[field]))
+          : field === 'Label'
+            ? filterKey(state.showLabels[showLabelKey(row['Show Title'])] || '')
           : filterKey(row[field] ?? '');
 
       return selected.has(rowValue);

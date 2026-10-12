@@ -5,18 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>P3 &amp; PPV US UGC</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=dashboard-chart-order-2" />
 </head>
 <body>
   <div class="app-shell">
     <header class="topbar">
       <div>
-        <p class="eyebrow">POCKETFM · GROWTH TRACKER</p>
+        <p class="eyebrow">POCKETFM GROWTH TRACKER · <span id="dataStatus">Loading shows…</span> · Last updated 09/10/26</p>
         <h1>P3 &amp; PPV Shows Slate</h1>
       </div>
 
       <div class="topbar-actions">
-        <span id="dataStatus" class="data-status">Loading shows…</span>
+        <span class="scope-selector-label">View</span>
+        <div id="operationalPPVScope" class="scope-pills" role="group" aria-label="Title Level Detail PPV scope">
+          <button type="button" class="scope-pill active" data-operational-scope="all">All</button>
+          <button type="button" class="scope-pill" data-operational-scope="p3">P3</button>
+          <button type="button" class="scope-pill" data-operational-scope="ppv">PPV</button>
+          <button type="button" class="scope-pill" data-operational-scope="all-others">Others</button>
+        </div>
         <button id="openExport" class="button button-primary">
           Export data
         </button>
@@ -27,7 +33,7 @@
       <section class="chart-grid" aria-label="Dashboard charts">
         <article class="chart-card chart-card-horizontal">
           <div class="chart-heading">
-            <h2>Shows by Classification</h2>
+            <h2>Shows by Testing Phase</h2>
           </div>
           <div class="chart-wrap">
             <canvas id="overallConvictionChart"></canvas>
@@ -36,29 +42,28 @@
 
         <article class="chart-card chart-card-horizontal">
           <div class="chart-heading">
-            <h2>Shows by Category</h2>
+            <h2>Shows by Classification</h2>
           </div>
           <div class="chart-wrap">
-            <canvas id="subjectiveConvictionChart"></canvas>
+            <canvas id="classificationChart"></canvas>
           </div>
         </article>
 
-        <article class="chart-card chart-card-horizontal">
+        <article class="chart-card chart-card-horizontal chart-card-small chart-card-category">
           <div class="chart-heading">
-            <h2>Shows by PPV Tag</h2>
+            <h2>Shows by Category</h2>
           </div>
           <div class="chart-wrap">
             <canvas id="contractedChart"></canvas>
           </div>
         </article>
 
-        <article class="chart-card chart-card-horizontal">
+        <article class="chart-card chart-card-horizontal chart-card-small chart-card-dumper">
           <div class="chart-heading">
-            <p class="eyebrow">PRIORITY</p>
-            <h2>Shows by Priority</h2>
+            <h2>Shows by Dumper vs Original</h2>
           </div>
           <div class="chart-wrap">
-            <canvas id="priorityChart"></canvas>
+            <canvas id="subjectiveConvictionChart"></canvas>
           </div>
         </article>
       </section>
@@ -93,7 +98,6 @@
           >
             <div class="advanced-filters-heading">
               <span>Additional filters</span>
-              <small>Select any extra fields you need.</small>
             </div>
 
             <div id="advancedFilters" class="all-filters advanced-all-filters"></div>
@@ -105,7 +109,7 @@
         <div class="section-heading table-heading">
           <div>
             <p class="eyebrow">SHOWS</p>
-            <h2>Operational view</h2>
+            <h2>Title Level Detail</h2>
           </div>
 
           <div class="table-tools">
@@ -129,16 +133,15 @@
 
         <div class="operational-search-row">
           <label class="search-field">
-            <span>Search all data</span>
             <input
               id="searchInput"
               type="search"
-              placeholder="Search by show, ID, author, writer or any field…"
+              placeholder="Search by show, ID, author or any field…"
             />
           </label>
         </div>
 
-        <div class="table-wrap">
+        <div id="operationalTableWrap" class="table-wrap operational-table-wrap">
           <table class="operational-table">
             <thead id="operationalTableHead"></thead>
 
@@ -150,7 +153,7 @@
             <h3>No shows found</h3>
             <p>
               Try changing your filters or add rows to
-              <code>operational-view.csv</code>.
+              <code>operational-view-updated.csv</code>.
             </p>
           </div>
         </div>
@@ -178,22 +181,76 @@
         <div id="comparerCard" class="tool-card comparer-card comparer-card-empty">
           <div class="tool-heading">
             <div>
-              <p class="eyebrow">RETENTION COMPARISON</p>
+              <p class="eyebrow">SHOW ON SHOW RETENTION</p>
               <h3>Comparer</h3>
             </div>
-            <span class="comparer-copy">Compare two shows across any retention view.</span>
+            <span class="comparer-copy">Compare shows across any retention view.</span>
+          </div>
+
+          <div class="comparer-mode-switcher" role="group" aria-label="Comparer mode">
+            <button class="retention-control-option active" type="button" data-comparer-mode="shows">Across 2 Shows</button>
+            <button class="retention-control-option" type="button" data-comparer-mode="ppv-tags">Across PPV Tags</button>
           </div>
 
           <div class="comparer-controls">
-          <label class="comparer-field">
+          <label class="comparer-field comparer-show-control">
             <span>Show Title / Show ID 1</span>
             <input id="compareShowIdOne" type="text" list="compareShowIds" placeholder="Enter" />
           </label>
 
-          <label class="comparer-field">
+          <label class="comparer-field comparer-show-control">
             <span>Show Title / Show ID 2</span>
             <input id="compareShowIdTwo" type="text" list="compareShowIds" placeholder="Enter" />
           </label>
+
+          <div class="comparer-field comparer-tag-control hidden">
+            <span>PPV Tag</span>
+            <div class="multi-filter" data-comparer-picker="tag">
+              <button class="multi-filter-toggle" type="button" data-comparer-picker-toggle="tag">
+                <span>Select</span><b class="filter-chevron">⌄</b>
+              </button>
+              <div class="multi-filter-menu hidden">
+                <div class="filter-menu-actions">
+                  <button type="button" data-ppv-picker-action="select-all" data-ppv-picker-kind="tag">Select all</button>
+                  <button type="button" data-ppv-picker-action="clear" data-ppv-picker-kind="tag">Clear</button>
+                </div>
+                <div id="comparePPVTagList" class="filter-options"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="comparer-field comparer-genre-control hidden">
+            <span>Genre</span>
+            <div class="multi-filter" data-comparer-picker="genre">
+              <button class="multi-filter-toggle" type="button" data-comparer-picker-toggle="genre">
+                <span>Select</span><b class="filter-chevron">⌄</b>
+              </button>
+              <div class="multi-filter-menu hidden">
+                <div class="filter-menu-actions">
+                  <button type="button" data-ppv-picker-action="select-all" data-ppv-picker-kind="genre">Select all</button>
+                  <button type="button" data-ppv-picker-action="clear" data-ppv-picker-kind="genre">Clear</button>
+                </div>
+                <div id="comparePPVGenreList" class="filter-options"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="comparer-field comparer-show-picker-control hidden">
+            <span>Show Title / Show ID</span>
+            <div class="multi-filter" data-comparer-picker="shows">
+              <button class="multi-filter-toggle" type="button" data-comparer-picker-toggle="shows">
+                <span>Select</span><b class="filter-chevron">⌄</b>
+              </button>
+              <div class="multi-filter-menu hidden">
+                <div class="filter-menu-actions">
+                  <button type="button" data-ppv-picker-action="select-all" data-ppv-picker-kind="shows">Select all</button>
+                  <button type="button" data-ppv-picker-action="clear" data-ppv-picker-kind="shows">Clear</button>
+                </div>
+                <input class="filter-option-search" type="search" placeholder="Search shows by title or ID" data-ppv-picker-search="shows" aria-label="Search shows by title or ID" />
+                <div id="comparePPVShowsList" class="filter-options"></div>
+              </div>
+            </div>
+          </div>
 
           <label class="comparer-field">
             <span>Retention type</span>
@@ -207,10 +264,17 @@
           <p id="comparerStatus" class="comparer-status"></p>
           <div id="comparerResultGrid" class="comparer-result-grid hidden">
             <div class="comparer-chart-wrap">
+              <div id="comparerChartControls" class="comparer-chart-controls hidden">
+                <button type="button" data-comparer-chart-action="range" data-range-min="1" data-range-max="200">Overall</button>
+                <button type="button" data-comparer-chart-action="range" data-range-min="20" data-range-max="50">H20-H50</button>
+                <button type="button" data-comparer-chart-action="range" data-range-min="50" data-range-max="100">H50-H100</button>
+              </div>
               <canvas id="comparerChart"></canvas>
+              <div id="comparerLegendTooltip" class="comparer-legend-tooltip"></div>
             </div>
             <div id="comparerMetrics" class="comparer-metrics"></div>
           </div>
+          <div id="comparerTable" class="comparer-table hidden"></div>
           <p id="comparerAnalysis" class="comparer-analysis"></p>
         </div>
 
@@ -220,7 +284,7 @@
               <p class="eyebrow">SHOW REPORT</p>
               <h3>Report Generator</h3>
             </div>
-            <span class="comparer-copy">Generate a concise report for any show.</span>
+            <span class="comparer-copy">Generate a full-on report for any show.</span>
           </div>
           <div class="report-controls">
             <label class="comparer-field">
@@ -343,6 +407,8 @@
           <code id="detailsShowId" class="details-show-id"></code>
         </div>
 
+        <div id="retentionCardViewControls" class="retention-card-view-controls"></div>
+
         <button
           class="icon-button"
           data-close-details
@@ -356,15 +422,16 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="app-config.js"></script>
+  <script src="vendor/chart.umd.min.js"></script>
+  <script src="vendor/xlsx.full.min.js"></script>
+  <script src="vendor/jspdf.umd.min.js"></script>
+  <script src="app-config.js?v=retention-range-1"></script>
   <script src="app-utils.js"></script>
-  <script src="app-filters.js"></script>
-  <script src="app-charts.js"></script>
-  <script src="app-view.js"></script>
+  <script src="app-filters.js?v=scope-disables-ppv-1"></script>
+  <script src="app-charts.js?v=hold-label-position-3"></script>
+  <script src="app-comparer-modes.js?v=ppv-tags-12"></script>
+  <script src="app-view.js?v=callout-axis-guides-1"></script>
   <script src="app-export.js"></script>
-  <script src="app.js"></script>
+  <script src="app.js?v=ppv-tags-7"></script>
 </body>
 </html>
