@@ -126,12 +126,46 @@ async function init() {
       console.warn('Could not load ppv-latest.csv', ppvError);
     }
 
+    try {
+      const derivativeResponse = await fetch('derivative.csv', {
+        cache: 'no-store'
+      });
+      if (derivativeResponse.ok) {
+        state.derivativeRows = parseCSV(await derivativeResponse.text());
+      }
+    } catch (derivativeError) {
+      console.warn('Could not load derivative.csv', derivativeError);
+    }
+
+    try {
+      const elasticityResponse = await fetch('elasticity.csv', {
+        cache: 'no-store'
+      });
+      if (elasticityResponse.ok) {
+        state.elasticityRows = parseCSV(await elasticityResponse.text());
+      }
+    } catch (elasticityError) {
+      console.warn('Could not load elasticity.csv', elasticityError);
+    }
+
+    try {
+      const lockPointResponse = await fetch('lock-points.csv', {
+        cache: 'no-store'
+      });
+      if (lockPointResponse.ok) {
+        state.lockPointRows = parseCSV(await lockPointResponse.text());
+      }
+    } catch (lockPointError) {
+      console.warn('Could not load lock-points.csv', lockPointError);
+    }
+
     $('dataStatus').textContent =
       `${state.allRows.length.toLocaleString()} shows tracked`;
 
     setupAllFilters();
     setupExport();
     setupOperationalColumns();
+    setupTitleRetentionControls();
     setupComparer();
     applyFilters();
   } catch (error) {
@@ -143,6 +177,7 @@ async function init() {
     setupAllFilters();
     setupExport();
     setupOperationalColumns();
+    setupTitleRetentionControls();
     setupComparer();
     applyFilters();
   }
@@ -164,10 +199,29 @@ document.querySelectorAll('[data-operational-scope]').forEach(button => {
   });
 });
 
+document.querySelectorAll('[data-shows-view]').forEach(button => {
+  button.addEventListener('click', () => {
+    state.showsView = button.dataset.showsView;
+    state.page = 1;
+    render();
+  });
+});
+
 $('pageSize').addEventListener(
   'change',
   event => {
     state.pageSize = Number(event.target.value);
+    if ($('retentionPageSize')) $('retentionPageSize').value = event.target.value;
+    state.page = 1;
+    render();
+  }
+);
+
+$('retentionPageSize').addEventListener(
+  'change',
+  event => {
+    state.pageSize = Number(event.target.value);
+    $('pageSize').value = event.target.value;
     state.page = 1;
     render();
   }
@@ -334,6 +388,19 @@ document.addEventListener('change', event => {
   refreshComparerChartControls();
 });
 
+
+window.stepNormalizedHour = (axis, edge, direction) => {
+  const values = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 30, 40, 50, 60, 70, 80, 90, 100, 120, 140, 160, 180, 200];
+  const input = document.querySelector(`.retention-range-controls [data-retention-axis="${axis}-${edge}"]`);
+  if (!input) return;
+  const current = Number(input.value);
+  const next = direction === 'up'
+    ? values.find(value => value > current)
+    : [...values].reverse().find(value => value < current);
+  if (next === undefined) return;
+  input.value = next;
+  input.dispatchEvent(new Event('change', { bubbles: true }));
+};
 
 document.addEventListener('click', event => {
   const toggle = event.target.closest('[data-comparer-picker-toggle]');

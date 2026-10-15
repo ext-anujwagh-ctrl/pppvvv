@@ -50,6 +50,9 @@ function groupedCounts(field, options = {}) {
   });
 
   return Object.entries(counts).sort((a, b) => {
+    if (options.sortCountDescending) {
+      return b[1] - a[1] || a[0].localeCompare(b[0], undefined, { numeric: true });
+    }
     const aNumber = Number(a[0]);
     const bNumber = Number(b[0]);
 
@@ -258,7 +261,10 @@ function updateCharts() {
     {
       horizontal: true,
       excludeBlank: true,
-      excludeValues: state.operationalScope === 'all-others' ? [] : ['testing_p2']
+      sortCountDescending: true,
+      excludeValues: state.operationalScope === 'all-others'
+        ? ['null', 'no_change', 'not_found', 'not found']
+        : ['null', 'no_change', 'not_found', 'not found', 'testing_p1', 'testing_p2']
     }
   );
 
@@ -283,6 +289,6 @@ function updateCharts() {
     'classificationChart',
     'bar',
     'Classification',
-    { horizontal: true, excludeBlank: true }
+    { horizontal: true, excludeBlank: true, sortCountDescending: true }
   );
 }

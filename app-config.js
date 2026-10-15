@@ -177,7 +177,7 @@ const REMOVED_FILTERS = new Set([
   ...LINK_FIELDS
 ]);
 
-const FILTER_HEADERS_UNORDERED = [...CSV_HEADERS, 'Elastic', 'Label', 'Dumper vs Original'].filter(
+const FILTER_HEADERS_UNORDERED = [...CSV_HEADERS, 'Label', 'Dumper vs Original'].filter(
   (header, index, headers) =>
     !REMOVED_FILTERS.has(header) && headers.indexOf(header) === index
 );
@@ -295,10 +295,17 @@ const state = {
   allRows: [],
   showLabels: {},
   reportRows: [],
+  derivativeRows: [],
+  derivativeThresholds: { green: 80, yellow: 60 },
+  elasticityRows: [],
+  elasticityThresholds: { green: 10, yellow: 20 },
+  lockPointRows: [],
   retentionDatasets: {},
-  retentionView: 'normalised overall',
+  showsView: 'data',
+  titleRetentionType: '',
+  retentionView: 'Whale+ US',
   retentionChartXMin: 1,
-  retentionChartXMax: 200,
+  retentionChartXMax: 50,
   retentionCardView: 'combined',
   filteredRows: [],
   page: 1,
@@ -310,6 +317,8 @@ const state = {
   ppvMaxHour: null,
   ppvThresholds: { darkGreen: 1, green: 0.7, yellow: 0.5, red: 0.5 },
   ppvView: 'graph',
+  elasticityBuckets: [],
+  elasticityChart: null,
   charts: {},
   retentionChart: null,
   retentionCharts: {},

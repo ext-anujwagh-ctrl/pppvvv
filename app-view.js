@@ -3,6 +3,13 @@
 function render() {
   const rows = state.filteredRows;
 
+  syncShowsView();
+
+  if (state.showsView === 'retention') {
+    renderTitleRetentionTable(rows);
+    return;
+  }
+
   $('operationalTableWrap')?.classList.toggle(
     'has-extra-columns',
     state.operationalColumns.some(column => !OPERATIONAL_VIEW_HEADERS.includes(column))
@@ -64,6 +71,91 @@ function render() {
     });
 }
 
+function retentionTableOptions() {
+  return allRetentionOptions().filter(option => option.sheet !== 'ppv benchmarks');
+}
+
+const RETENTION_HOUR_OPTIONS = [
+  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 30, 40, 50,
+  60, 70, 80, 90, 100, 120, 140, 160, 180, 200
+];
+
+function setupTitleRetentionControls() {
+  const select = $('titleRetentionType');
+  if (!select) return;
+
+  const options = retentionTableOptions();
+  select.innerHTML = `<option value="" disabled>Select Retn. User Cohort</option>${options.map(option =>
+    `<option value="${escapeHTML(option.sheet)}">${escapeHTML(option.label)}</option>`
+  ).join('')}`;
+  select.value = options.some(option => option.sheet === state.titleRetentionType)
+    ? state.titleRetentionType
+    : '';
+  state.titleRetentionType = select.value;
+  select.addEventListener('change', event => {
+    state.titleRetentionType = event.target.value;
+    state.page = 1;
+    render();
+  });
+}
+
+function syncShowsView() {
+  document.querySelectorAll('[data-shows-view]').forEach(button => {
+    const active = button.dataset.showsView === state.showsView;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-selected', String(active));
+  });
+  document.querySelector('.shows-data-tools')?.classList.toggle('hidden', state.showsView !== 'data');
+  document.querySelector('.shows-retention-tools')?.classList.toggle('hidden', state.showsView !== 'retention');
+  if ($('retentionPageSize')) $('retentionPageSize').value = String(state.pageSize);
+  $('operationalTableWrap')?.classList.toggle('title-retention-view', state.showsView === 'retention');
+}
+
+function renderTitleRetentionTable(rows) {
+  const dataset = retentionDatasetForView(state.titleRetentionType);
+  const retentionRows = new Map((dataset?.rows || []).map(row => [normalized(row['Show ID']), row]));
+  const availableRows = rows.map(row => ({ show: row, retention: retentionRows.get(normalized(row['Show ID'])) }));
+  const pages = Math.max(1, Math.ceil(availableRows.length / state.pageSize));
+  state.page = Math.min(state.page, pages);
+  const start = (state.page - 1) * state.pageSize;
+  const pageRows = availableRows.slice(start, start + state.pageSize);
+  const hours = retentionFieldEntries(dataset?.rows?.find(row => retentionRows.has(normalized(row['Show ID'])))).map(point => point.hour);
+  const selectedFields = hours.map(hour => `H${hour} Ret% Nth TD`);
+  const retentionRatioClass = (show, retention, field) => {
+    const actual = Number.parseFloat(String(retention?.[field] ?? '').replace('%', '').trim());
+    const benchmark = dataset?.benchmarks?.[benchmarkGenreKey(show['Genre'])];
+    const benchmarkValue = Number.parseFloat(String(benchmark?.[field] ?? '').replace('%', '').trim());
+    if (!Number.isFinite(actual) || !Number.isFinite(benchmarkValue) || benchmarkValue === 0) return '';
+    const ratio = actual / benchmarkValue;
+    if (ratio >= 0.7) return 'tag-green';
+    if (ratio >= 0.5) return 'tag-yellow';
+    return 'tag-red';
+  };
+
+  $('operationalTableHead').innerHTML = `<tr><th class="column-show-title">Show</th>${selectedFields.map(field => `<th title="${escapeHTML(field)}">H${field.match(/^H(\d+)/i)?.[1]}</th>`).join('')}</tr>`;
+  $('showTableBody').innerHTML = pageRows.map(({ show, retention }) => `
+    <tr class="show-row" data-row-index="${rows.indexOf(show)}">
+      <td class="column-show-title"><div class="show-name">${escapeHTML(show['Show Title'] || 'Untitled')}</div><div class="show-id">${escapeHTML(show['Show ID'])}</div></td>
+      ${selectedFields.map(field => `<td><span class="tag ${retentionRatioClass(show, retention, field)}">${formatRetentionTableValue(retention?.[field])}</span></td>`).join('')}
+    </tr>
+  `).join('');
+
+  $('resultCount').textContent = `${rows.length.toLocaleString()} result${rows.length === 1 ? '' : 's'}`;
+  $('retentionResultCount').textContent = `${rows.length.toLocaleString()} result${rows.length === 1 ? '' : 's'}`;
+  $('pageInfo').textContent = `Page ${state.page} of ${pages}`;
+  $('previousPage').disabled = state.page <= 1;
+  $('nextPage').disabled = state.page >= pages;
+  $('emptyState').classList.toggle('hidden', pageRows.length > 0);
+  document.querySelectorAll('#showTableBody tr[data-row-index]').forEach(rowElement => {
+    rowElement.addEventListener('click', () => openDetails(rows[Number(rowElement.dataset.rowIndex)]));
+  });
+}
+
+function formatRetentionTableValue(value) {
+  const numeric = Number.parseFloat(String(value ?? '').replace('%', '').trim());
+  return Number.isFinite(numeric) ? `${(numeric <= 1 ? numeric * 100 : numeric).toFixed(1)}%` : '-';
+}
+
 function renderOperationalTableHead() {
   $('operationalTableHead').innerHTML = `
     <tr>
@@ -82,7 +174,6 @@ function tableHeaderLabel(field) {
     'Active/Inactive': 'Status',
     'Activity Days (L30D)': 'L30 Actv',
     'Show Length': 'Length',
-    Elastic: 'Elastic'
   };
 
   return labels[field] || field;
@@ -107,10 +198,6 @@ function operationalCell(field, row) {
     return label
       ? `<span class="show-label-dot show-label-${normalized(label)}" title="${escapeHTML(label)}" aria-label="${escapeHTML(label)}"></span>`
       : '-';
-  }
-
-  if (field === 'Elastic') {
-    return elasticThroughForShow(row) ? 'Yes (1)' : 'No (0)';
   }
 
   if (LINK_FIELDS.has(field)) {
@@ -342,10 +429,22 @@ function cleanDetailValue(value) {
 function openDetails(row) {
   $('detailsTitle').textContent =
     row['Show Title'] || 'Show details';
-  $('detailsShowId').textContent = [
-    row['Show ID'],
-    row['Genre']
-  ].filter(Boolean).join(' · ') || '-';
+  const showId = String(row['Show ID'] || '').trim();
+  const rawGenre = String(row['Genre'] || '').trim();
+  const genreLabel = rawGenre
+    ? `${rawGenre.charAt(0).toUpperCase()}${rawGenre.slice(1).toLowerCase()}`
+    : '';
+  const lockPoint = state.lockPointRows.find(item => String(item.show_id || '').trim() === showId);
+  $('detailsShowId').textContent = showId || '-';
+  const genreElement = $('detailsGenre');
+  if (genreElement) genreElement.textContent = genreLabel || '-';
+  const lockPointText = lockPoint
+    ? `Ep: ${lockPoint.lock_point_episode} | Hr: ${lockPoint.lock_point_start_hour}`
+    : 'Ep: No Data Found | Hr: No Data Found';
+  const lockPointElement = $('detailsLockPoint');
+  if (lockPointElement) {
+    lockPointElement.innerHTML = `<span class="details-lock-point-label">Lock Point</span><span class="details-lock-point-value">${escapeHTML(lockPointText)}</span>`;
+  }
 
   const detailFields = new Set(
     DETAIL_HEADERS.filter(
@@ -404,7 +503,7 @@ function openDetails(row) {
       <article id="retentionChartSection" class="retention-chart-section hidden">
         <div class="detail-section-heading">
           <strong>Normalised Live Ret. - H1 Base <span id="normalisedBenchmarkSuffix" class="benchmark-heading-suffix"></span></strong>
-          <span class="retention-chart-note">Unlock Hour Bucket H14 Onwards</span>
+          <span class="retention-chart-note">Retn. Refreshed 12/10/26</span>
         </div>
         <div id="retentionControls" class="retention-controls"></div>
         <div class="retention-meta-row">
@@ -418,7 +517,7 @@ function openDetails(row) {
       <article id="ppvRetentionChartSection" class="retention-chart-section hidden">
         <div class="detail-section-heading">
           <strong>PPV Benchmarks - H10 Base <span id="ppvBenchmarkSuffix" class="benchmark-heading-suffix"></span></strong>
-          <span class="retention-chart-note">H1-H40 US+ROW1, H50-H100 US Only</span>
+          <span class="retention-chart-note">Retn. Refreshed 12/10/26</span>
         </div>
         <div id="ppvRetentionControls" class="retention-controls"></div>
         <p id="ppvRetentionMeta" class="retention-meta"></p>
@@ -427,13 +526,41 @@ function openDetails(row) {
         </div>
         <div id="ppvRetentionTable" class="hidden"></div>
       </article>
+      <article id="derivativeSection" class="retention-chart-section hidden">
+        <div class="detail-section-heading">
+          <strong>Whale+ Overall Derivative</strong>
+          <span class="retention-chart-note">Retn. Refreshed 12/10/26</span>
+        </div>
+        <div id="derivativeTable"></div>
+      </article>
+      <article id="elasticitySection" class="retention-chart-section hidden">
+        <div class="detail-section-heading">
+          <div class="elasticity-heading-main">
+            <strong>Elasticity</strong>
+            <div class="elasticity-legend" aria-label="Elasticity color legend">
+              <span><i class="comparer-legend-dot comparer-legend-green"></i>Within 10 pts</span>
+              <span><i class="comparer-legend-dot comparer-legend-yellow"></i>10–20 pts</span>
+              <span><i class="comparer-legend-dot comparer-legend-red"></i>&gt;20 pts</span>
+            </div>
+          </div>
+          <div class="elasticity-threshold-tools">
+            <span class="retention-chart-note">Retn. Refreshed 12/10/26</span>
+            <div class="elasticity-threshold-controls" aria-label="Configure elasticity colors">
+              <label>Green ≤ <input type="number" min="0" max="100" step="5" data-elasticity-threshold="green" value="${state.elasticityThresholds.green}" /></label>
+              <label>Yellow ≤ <input type="number" min="0" max="100" step="5" data-elasticity-threshold="yellow" value="${state.elasticityThresholds.yellow}" /></label>
+              <label>Red &gt; <output>${state.elasticityThresholds.yellow}</output></label>
+            </div>
+          </div>
+        </div>
+        <div id="elasticityTable"></div>
+      </article>
     </section>
     ${sections}
     ${remainingSection}
   `;
 
   $('detailsModal').classList.remove('hidden');
-  state.retentionView = 'normalised overall';
+  state.retentionView = 'Whale+ US';
   state.retentionCardView = 'combined';
   state.ppvMaxHour = null;
   state.ppvView = 'xyz';
@@ -448,9 +575,11 @@ function setupRetentionCardViewControls(showRow) {
   if (!container) return;
 
   const options = [
-    ['combined', 'Combined'],
+    ['combined', 'Overview'],
     ['normalised', 'H1 Base'],
-    ['ppv', 'H10 Base']
+    ['ppv', 'H10 Base'],
+    ['derivative', 'Derivative'],
+    ['elasticity', 'Elasticity']
   ];
   container.innerHTML = `
     <div class="retention-card-view-selector">
@@ -466,8 +595,12 @@ function setupRetentionCardViewControls(showRow) {
   const applyView = view => {
     $('retentionChartGrid')?.classList.toggle('single-retention-view', view !== 'combined');
     $('retentionChartGrid')?.classList.toggle('ppv-retention-view', view === 'ppv');
-    $('retentionChartSection')?.classList.toggle('hidden', view === 'ppv');
-    $('ppvRetentionChartSection')?.classList.toggle('hidden', view === 'normalised');
+    $('retentionChartGrid')?.classList.toggle('overview-retention-view', view === 'combined');
+    $('retentionChartSection')?.classList.toggle('hidden', view === 'ppv' || view === 'derivative' || view === 'elasticity');
+    $('ppvRetentionChartSection')?.classList.toggle('hidden', view === 'normalised' || view === 'derivative' || view === 'elasticity');
+    $('derivativeSection')?.classList.toggle('hidden', view !== 'derivative');
+    $('elasticitySection')?.classList.toggle('hidden', view !== 'elasticity');
+    document.querySelector('.normalised-data-updated')?.classList.toggle('hidden', view !== 'normalised');
 
     const ppvTable = $('ppvRetentionTable');
     const ppvChartWrap = $('ppvRetentionChart')?.parentElement;
@@ -482,6 +615,8 @@ function setupRetentionCardViewControls(showRow) {
     button.addEventListener('click', () => {
       state.retentionCardView = button.dataset.retentionCardView;
       if (showRow) renderPPVView(showRow);
+      if (showRow && state.retentionCardView === 'derivative') renderDerivativeView(showRow);
+      if (showRow && state.retentionCardView === 'elasticity') setupElasticityView(showRow);
       setupRetentionCardViewControls(showRow);
     });
   });
@@ -532,10 +667,10 @@ const RETENTION_VALUE_LABELS_PLUGIN = {
 
     const context = chart.ctx;
     const chartArea = chart.chartArea;
-    const boxHeight = 18;
-    const boxGap = 4;
+    const boxHeight = 15;
+    const boxGap = 2;
     const laneHeight = boxHeight + boxGap;
-    const boxPadding = 5;
+    const boxPadding = 4;
 
     if (!chartArea) return;
 
@@ -567,7 +702,7 @@ const RETENTION_VALUE_LABELS_PLUGIN = {
           ? `Actual - ${value.toFixed(1)}%`
           : `BM - ${value.toFixed(1)}%`;
 
-        context.font = '600 9px Inter, sans-serif';
+        context.font = '600 8px Inter, sans-serif';
         const boxWidth = context.measureText(valueLabel).width + boxPadding * 2;
         const boxX = Math.max(
           chartArea.left,
@@ -577,25 +712,40 @@ const RETENTION_VALUE_LABELS_PLUGIN = {
           chartArea.top + 2,
           Math.min(value, chartArea.bottom - boxHeight - 2)
         );
-        // Keep benchmark callouts above actual callouts at every shared hour.
+        // Keep actual callouts above benchmark callouts at every shared hour.
         // The collision fallback still moves boxes when the chart edge or a
         // neighbouring label leaves no room in the preferred lane.
-        const preferredAbove = datasetIndex === 1;
+        const preferredAbove = datasetIndex === 0;
         const candidateYs = preferredAbove
-          ? [point.y - boxHeight - 10, point.y + 10]
-          : [point.y + 10, point.y - boxHeight - 10];
+          ? [point.y - boxHeight - 7, point.y + 7]
+          : [point.y + 7, point.y - boxHeight - 7];
         let boxY = clampY(candidateYs[0]);
         let candidateIndex = 0;
         while (candidateIndex < 12 && placedBoxes.some(box =>
-          boxX < box.right + 8 && boxX + boxWidth > box.left - 8 &&
-          boxY < box.bottom + 5 && boxY + boxHeight > box.top - 5
+          boxX < box.right + 5 && boxX + boxWidth > box.left - 5 &&
+          boxY < box.bottom + 3 && boxY + boxHeight > box.top - 3
         )) {
           candidateIndex += 1;
           const direction = candidateIndex % 2 ? 1 : -1;
-          const step = Math.ceil(candidateIndex / 2) * (boxHeight + 4);
+          const step = Math.ceil(candidateIndex / 2) * (boxHeight + 2);
           boxY = clampY(candidateYs[0] + direction * step);
         }
-        placedBoxes.push({ left: boxX, right: boxX + boxWidth, top: boxY, bottom: boxY + boxHeight });
+        if (datasetIndex === 1) {
+          const actualBoxesAtHour = placedBoxes.filter(box =>
+            box.datasetIndex === 0 &&
+            boxX < box.right + 5 && boxX + boxWidth > box.left - 5
+          );
+          if (actualBoxesAtHour.length) {
+            boxY = Math.max(boxY, ...actualBoxesAtHour.map(box => box.bottom + 3));
+          }
+        }
+        placedBoxes.push({
+          datasetIndex,
+          left: boxX,
+          right: boxX + boxWidth,
+          top: boxY,
+          bottom: boxY + boxHeight
+        });
         const connectorX = Math.max(boxX + 8, Math.min(point.x, boxX + boxWidth - 8));
         const connectorY = boxY > point.y ? boxY : boxY + boxHeight;
         const borderColor = datasetIndex === 0
@@ -612,8 +762,8 @@ const RETENTION_VALUE_LABELS_PLUGIN = {
         // Extend each callout down to the x-axis so its hour remains easy to
         // associate with the label, especially in the dense Overall view.
         context.save();
-        context.globalAlpha = 0.38;
-        context.setLineDash([3, 3]);
+        context.globalAlpha = 0.24;
+        context.setLineDash([2, 3]);
         context.beginPath();
         const guideX = isPPVBenchmark ? connectorX : point.x;
         context.moveTo(guideX, boxY > point.y ? boxY : boxY + boxHeight);
@@ -624,7 +774,7 @@ const RETENTION_VALUE_LABELS_PLUGIN = {
         context.fillStyle = 'rgba(18, 26, 38, .96)';
         context.strokeStyle = borderColor;
         context.beginPath();
-        context.roundRect(boxX, boxY, boxWidth, boxHeight, 4);
+        context.roundRect(boxX, boxY, boxWidth, boxHeight, 3);
         context.fill();
         context.stroke();
 
@@ -680,7 +830,7 @@ function retentionControlMarkup() {
   return `
     <div class="retention-pill-layout retention-normalised-controls">
       <div class="retention-pill-selector">
-        <span>Retention</span>
+        <span>USER COHORT</span>
         <div class="retention-pill-group">
           ${options.map(option => button(option.label, option.key, 'retention-source', option.key === source.key)).join('')}
         </div>
@@ -710,24 +860,36 @@ function setupRetentionControls(showRow) {
 
   container.innerHTML = retentionControlMarkup();
   const rangeContainer = $('retentionRangeControls');
+  const retentionDataset = retentionDatasetForView(state.retentionView);
+  const retentionRow = retentionDataset?.rows?.find(row =>
+    normalized(row['Show ID']) === normalized(showRow['Show ID'])
+  );
+  const availableHours = retentionFieldEntries(retentionRow)
+    .map(point => point.hour)
+    .sort((a, b) => a - b);
+  const hourOptions = RETENTION_HOUR_OPTIONS.filter(hour => availableHours.includes(hour));
+  if (hourOptions.length < 2) hourOptions.push(...RETENTION_HOUR_OPTIONS.filter(hour => !hourOptions.includes(hour)).slice(0, 2 - hourOptions.length));
+  const closestAvailableHour = value => hourOptions.reduce((closest, hour) =>
+    Math.abs(hour - value) < Math.abs(closest - value) ? hour : closest
+  );
+  state.retentionChartXMin = closestAvailableHour(state.retentionChartXMin);
+  state.retentionChartXMax = closestAvailableHour(state.retentionChartXMax);
+  if (state.retentionChartXMin >= state.retentionChartXMax && hourOptions.length > 1) {
+    state.retentionChartXMin = hourOptions[0];
+    state.retentionChartXMax = hourOptions.at(-1);
+  }
   if (rangeContainer) {
-    if (state.retentionChartXMin === 10 && state.retentionChartXMax === 50) {
-      state.retentionChartXMax = 20;
-    }
-    const ranges = [
-      ['Overall', 1, 200],
-      ['H1-H20', 1, 20],
-      ['H20-H50', 20, 50],
-      ['50-100', 50, 100],
-      ['100-200', 100, 200]
-    ];
+    const input = (axis, edge, min, max, value) => `
+      <span class="comparer-axis-input">
+        <input type="number" min="${min}" max="${max}" step="${axis === 'x' ? '1' : 'any'}" value="${value}" data-retention-axis="${axis}-${edge}" data-retention-options="${hourOptions.join(',')}" aria-label="${axis === 'x' ? 'Hour' : 'Retention percentage'} ${edge}" />
+        <span class="comparer-axis-spinner" aria-hidden="true">
+          <button type="button" tabindex="-1" data-retention-axis-step="${axis}-${edge}" data-direction="up" onclick="window.stepNormalizedHour('${axis}', '${edge}', 'up')">▲</button>
+          <button type="button" tabindex="-1" data-retention-axis-step="${axis}-${edge}" data-direction="down" onpointerdown="window.stepNormalizedHour('${axis}', '${edge}', 'down'); event.preventDefault()" onclick="event.preventDefault()">▼</button>
+        </span>
+      </span>
+    `;
     rangeContainer.innerHTML = `
-      <span>Hour range</span>
-      <div class="retention-pill-group retention-range-group">
-        ${ranges.map(([label, min, max]) => `
-          <button class="retention-control-option ${state.retentionChartXMin === min && state.retentionChartXMax === max ? 'active' : ''}" type="button" data-retention-range-min="${min}" data-retention-range-max="${max}">${label}</button>
-        `).join('')}
-      </div>
+      <div class="comparer-axis-range"><strong>Hour</strong>${input('x', 'min', hourOptions[0], hourOptions.at(-1), state.retentionChartXMin)}<span>To</span>${input('x', 'max', hourOptions[0], hourOptions.at(-1), state.retentionChartXMax)}</div>
     `;
   }
 
@@ -767,75 +929,39 @@ function setupRetentionControls(showRow) {
       rerender(sheets[sourceKeyFor(currentGeography, button.dataset.retentionGender)]);
     });
   });
-  rangeContainer?.querySelectorAll('[data-retention-range-min]').forEach(button => {
-    button.addEventListener('click', () => {
-      state.retentionChartXMin = Number(button.dataset.retentionRangeMin);
-      state.retentionChartXMax = Number(button.dataset.retentionRangeMax);
-      setupRetentionControls(showRow);
+  const axisValues = () => hourOptions;
+  const snapAxisValue = value => closestAvailableHour(value);
+  rangeContainer?.querySelectorAll('[data-retention-axis]').forEach(input => {
+    input.addEventListener('change', () => {
+      const [axis, edge] = input.dataset.retentionAxis.split('-');
+      const rawValue = Number(input.value);
+      const value = snapAxisValue(rawValue);
+      if (!Number.isFinite(value)) return;
+      input.value = value;
+      if (axis === 'x' && edge === 'min') state.retentionChartXMin = value;
+      if (axis === 'x' && edge === 'max') state.retentionChartXMax = value;
+      if (axis === 'x' && state.retentionChartXMin >= state.retentionChartXMax) {
+        if (edge === 'min') {
+          const next = hourOptions.find(hour => hour > value) || hourOptions.at(-1);
+          state.retentionChartXMin = hourOptions.find(hour => hour < next) || hourOptions[0];
+          state.retentionChartXMax = next;
+        } else {
+          const previous = [...hourOptions].reverse().find(hour => hour < value) || hourOptions[0];
+          state.retentionChartXMin = previous;
+          state.retentionChartXMax = hourOptions.find(hour => hour > previous) || hourOptions.at(-1);
+        }
+      }
       renderRetentionChart(showRow, state.retentionView, 'retentionChart', 'retentionChartSection');
+      setupRetentionControls(showRow);
     });
   });
   container.querySelector('[data-retention-clear]')?.addEventListener('click', () => {
-    state.retentionView = 'normalised overall';
+    state.retentionView = 'Whale+ US';
     state.retentionChartXMin = 1;
-    state.retentionChartXMax = 200;
+    state.retentionChartXMax = 50;
     setupRetentionControls(showRow);
     renderRetentionChart(showRow, state.retentionView, 'retentionChart', 'retentionChartSection');
   });
-}
-
-function elasticThroughForShow(showRow, maxHourOverride = null) {
-  const dataset = retentionDatasetForView('ppv benchmarks');
-  if (!dataset?.isPPVBenchmark || !showRow?.['Show ID']) return null;
-
-  const fallbackRow = dataset.rows.find(row => row['Show ID'] === showRow['Show ID']);
-  const availableHours = dataset.cohortHours.filter(hour =>
-    dataset.cohortRows?.[`${showRow['Show ID']}|${hour}`]
-  );
-  const isPPVTabular = state.ppvView === 'xyz';
-  const maxHour = Number(maxHourOverride ?? fallbackRow?.['PPV Max Hour'] ?? availableHours.at(-1));
-  if (!Number.isFinite(maxHour)) return null;
-
-  const retentionPercent = value => {
-    const numeric = Number.parseFloat(String(value ?? '').replace('%', ''));
-    if (!Number.isFinite(numeric)) return null;
-    return numeric <= 1 ? numeric * 100 : numeric;
-  };
-  const numericValue = value => {
-    const numeric = Number.parseFloat(String(value ?? '').replace(/,/g, ''));
-    return Number.isFinite(numeric) ? numeric : null;
-  };
-  const median = values => {
-    const sorted = [...values].sort((a, b) => a - b);
-    const middle = Math.floor(sorted.length / 2);
-    return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
-  };
-
-  let elasticThrough = null;
-  for (const hour of dataset.cohortHours.filter(value => value >= 20 && value <= maxHour)) {
-    const cohortRows = dataset.cohortHours
-      .filter(cohortHour => cohortHour >= hour && cohortHour <= maxHour)
-      .map(cohortHour => dataset.cohortRows?.[`${showRow['Show ID']}|${cohortHour}`])
-      .filter(Boolean);
-    const ldauValues = cohortRows.map(row => numericValue(row['H10 LDAU'])).filter(value => value !== null);
-    const retentionValues = cohortRows
-      .map(row => retentionPercent(row[`H${hour} Ret% Nth TD`]))
-      .filter(value => value !== null);
-    if (ldauValues.length < 2 || retentionValues.length < 2) break;
-
-    const ldauMedian = median(ldauValues);
-    const ldauMinimum = ldauValues.every(value => value >= 100);
-    const ldauStable = ldauMedian !== 0 && ldauValues.every(value => value >= ldauMedian * 0.8);
-    const retentionStable = Math.max(...retentionValues) - Math.min(...retentionValues) <= 10;
-    if (!ldauMinimum || !ldauStable || !retentionStable) break;
-    elasticThrough = hour;
-  }
-  return elasticThrough;
-}
-
-function elasticFilterLabel(showRow) {
-  const elasticThrough = elasticThroughForShow(showRow);
-  return elasticThrough ? `Elastic till H${elasticThrough}` : 'Not Elastic';
 }
 
 function setupPPVControls(showRow) {
@@ -859,38 +985,16 @@ function setupPPVControls(showRow) {
   const cohortRow = dataset.cohortRows?.[
     `${showRow['Show ID']}|${state.ppvMaxHour}`
   ];
-  const elasticThrough = elasticThroughForShow(showRow, state.ppvMaxHour);
   const meta = $('ppvRetentionMeta');
   if (meta) {
     const ldau = Number(cohortRow?.['H10 LDAU']);
-    const elasticityLabel = elasticThrough ? `Elastic till H${elasticThrough}` : 'Not elastic';
-    meta.textContent = cohortRow
-      ? state.ppvView === 'xyz'
-        ? elasticityLabel
-        : `H10 LDAU: ${Number.isFinite(ldau) ? ldau.toLocaleString() : '-'} · ${elasticityLabel}`
+    meta.innerHTML = cohortRow
+      ? `H10 LDAU: ${Number.isFinite(ldau) ? ldau.toLocaleString() : '-'}<span class="retention-meta-updated">H1-H40 US+ROW1, H50-H100 US Only</span>`
       : 'No PPV benchmark data for this show.';
   }
 
   container.innerHTML = `
     <div class="retention-pill-layout ppv-controls-layout">
-      <div class="retention-pill-selector">
-        <span>Max Hour Cohort</span>
-        <div class="retention-pill-group">
-          ${dataset.cohortHours.map(hour => {
-            const available = availableHours.includes(hour);
-            return `
-              <button
-                class="retention-control-option ${state.ppvMaxHour === hour ? 'active' : ''}"
-                type="button"
-                data-ppv-max-hour="${hour}"
-                ${available && !isPPVTabular ? '' : 'disabled'}
-              >
-                H${hour}
-              </button>
-            `;
-          }).join('')}
-        </div>
-      </div>
       <div class="retention-pill-selector">
         <span>View</span>
         <div class="retention-pill-group">
@@ -905,6 +1009,26 @@ function setupPPVControls(showRow) {
           `).join('')}
         </div>
       </div>
+      ${!isPPVTabular ? `
+        <div class="retention-pill-selector">
+          <span>Max Hour Cohort</span>
+          <div class="retention-pill-group">
+            ${dataset.cohortHours.map(hour => {
+              const available = availableHours.includes(hour);
+              return `
+                <button
+                  class="retention-control-option ${state.ppvMaxHour === hour ? 'active' : ''}"
+                  type="button"
+                  data-ppv-max-hour="${hour}"
+                  ${available ? '' : 'disabled'}
+                >
+                  H${hour}
+                </button>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      ` : ''}
     </div>
   `;
 
@@ -936,6 +1060,144 @@ function renderRetentionCharts(showRow) {
 
   renderRetentionChart(showRow, normalisedView, 'retentionChart', 'retentionChartSection');
   renderPPVView(showRow);
+  renderDerivativeView(showRow);
+  setupElasticityView(showRow);
+}
+
+function setupElasticityView(showRow) {
+  const table = $('elasticityTable');
+  if (!table) return;
+
+  const showId = String(showRow?.['Show ID'] || '').trim();
+  const rows = state.elasticityRows.filter(row => String(row['Show ID'] || '').trim() === showId);
+  if (!rows.length) {
+    table.innerHTML = '<p class="retention-meta">No elasticity data for this show.</p>';
+    return;
+  }
+  const fields = Object.keys(rows[0]).filter(field => /^H\d+ Ret% Nth TD$/.test(field));
+  const bucketOrder = { A: 0, B: 1, C: 2, D: 3, E: 4 };
+  const orderedRows = [...rows].sort((a, b) => {
+    const rankA = bucketOrder[String(a['LDAU Rank Bucket'] || '').trim().charAt(0)] ?? 99;
+    const rankB = bucketOrder[String(b['LDAU Rank Bucket'] || '').trim().charAt(0)] ?? 99;
+    return rankA - rankB;
+  });
+  const columnStats = Object.fromEntries(fields.map(field => {
+    const values = orderedRows
+      .map(row => Number.parseFloat(String(row[field] || '').replace('%', '')))
+      .filter(Number.isFinite);
+    const zeroCount = values.filter(value => value === 0).length;
+    return [field, {
+      maximum: values.length ? Math.max(...values) : null,
+      skipColor: orderedRows.length > 1 && zeroCount >= orderedRows.length - 1
+    }];
+  }));
+  const elasticityClass = (field, value) => {
+    const numeric = Number.parseFloat(String(value || '').replace('%', ''));
+    const stats = columnStats[field];
+    if (!Number.isFinite(numeric) || !stats || stats.skipColor || !Number.isFinite(stats.maximum)) return '';
+    const delta = stats.maximum - numeric;
+    if (delta <= state.elasticityThresholds.green) return 'elasticity-cell-green';
+    if (delta <= state.elasticityThresholds.yellow) return 'elasticity-cell-yellow';
+    return 'elasticity-cell-red';
+  };
+  const elasticByField = Object.fromEntries(fields.map(field => {
+    const classes = orderedRows.map(row => elasticityClass(field, row[field]));
+    const greenCount = classes.filter(className => className === 'elasticity-cell-green').length;
+    const yellowCount = classes.filter(className => className === 'elasticity-cell-yellow').length;
+    const onlyGreenAndYellow = classes.length > 0 && classes.every(className =>
+      className === 'elasticity-cell-green' || className === 'elasticity-cell-yellow'
+    );
+    return [field, onlyGreenAndYellow
+      ? greenCount > yellowCount ? 'Elastic' : 'Plastic'
+      : 'Inelastic'];
+  }));
+  table.innerHTML = `
+    <div class="elasticity-table-wrap">
+      <table class="ppv-xyz-table elasticity-table">
+        <thead><tr><th>LDAU Rank Bucket</th><th>LDAU</th>${fields.map(field => `<th>${escapeHTML(field.replace(' Ret% Nth TD', ''))}</th>`).join('')}</tr></thead>
+        <tbody>
+          ${orderedRows.map(row => `<tr><th>${escapeHTML(row['LDAU Rank Bucket'] || '–')}</th><td>${escapeHTML(row.LDAU || '–')}</td>${fields.map(field => `<td class="${elasticityClass(field, row[field])}">${escapeHTML(row[field] || '–')}</td>`).join('')}</tr>`).join('')}
+          <tr class="elasticity-summary-row"><th colspan="2">Elasticity Summary</th>${fields.map(field => `<td>${elasticByField[field]}</td>`).join('')}</tr>
+        </tbody>
+      </table>
+    </div>
+  `;
+  table.closest('#elasticitySection')?.querySelectorAll('[data-elasticity-threshold]').forEach(input => {
+    input.addEventListener('change', event => {
+      const key = event.target.dataset.elasticityThreshold;
+      const value = Math.max(0, Math.min(100, Number.parseFloat(event.target.value)));
+      if (!Number.isFinite(value)) return;
+      state.elasticityThresholds[key] = value;
+      if (state.elasticityThresholds.green > state.elasticityThresholds.yellow) {
+        state.elasticityThresholds.green = state.elasticityThresholds.yellow;
+      }
+      setupElasticityView(showRow);
+    });
+  });
+}
+
+function renderDerivativeView(showRow) {
+  const table = $('derivativeTable');
+  if (!table) return;
+  const heading = document.querySelector('#derivativeSection .detail-section-heading');
+  if (heading) {
+    heading.innerHTML = `
+      <div class="derivative-heading-main">
+        <strong>Whale+ Overall Derivative</strong>
+        <div class="derivative-legend" aria-label="Derivative retention legend">
+          <span><i class="comparer-legend-dot comparer-legend-green"></i>&gt; ${state.derivativeThresholds.green}%</span>
+          <span><i class="comparer-legend-dot comparer-legend-yellow"></i>${state.derivativeThresholds.yellow}–${state.derivativeThresholds.green}%</span>
+          <span><i class="comparer-legend-dot comparer-legend-red"></i>&lt; ${state.derivativeThresholds.yellow}%</span>
+        </div>
+      </div>
+      <div class="derivative-threshold-tools">
+        <span class="retention-chart-note">Retn. Refreshed 12/10/26</span>
+        <div class="derivative-threshold-controls" aria-label="Configure derivative retention colors">
+          <label>Green &gt; <input type="number" min="0" max="100" step="5" data-derivative-threshold="green" value="${state.derivativeThresholds.green}" /></label>
+          <label>Yellow ≥ <input type="number" min="0" max="100" step="5" data-derivative-threshold="yellow" value="${state.derivativeThresholds.yellow}" /></label>
+          <label>Red &lt; <output class="derivative-threshold-readonly">${state.derivativeThresholds.yellow}</output></label>
+        </div>
+      </div>
+    `;
+  }
+  const row = state.derivativeRows.find(item =>
+    String(item.show_id || '').trim() === String(showRow?.['Show ID'] || '').trim()
+  );
+  if (!row) {
+    table.innerHTML = '<p class="retention-meta">No derivative data for this show.</p>';
+    return;
+  }
+  const fields = Object.keys(row).filter(field => /^H\d+\/H\d+$/.test(field));
+  const tableGroups = [fields.slice(0, 9), fields.slice(9)];
+  const derivativeClass = value => {
+    const numeric = Number.parseFloat(String(value ?? '').replace('%', ''));
+    if (!Number.isFinite(numeric)) return '';
+    if (numeric > state.derivativeThresholds.green) return 'derivative-ratio-green';
+    if (numeric >= state.derivativeThresholds.yellow) return 'derivative-ratio-yellow';
+    return 'derivative-ratio-red';
+  };
+  table.innerHTML = `
+    ${tableGroups.map(group => `
+      <div class="ppv-xyz-table-wrap derivative-table-wrap">
+        <table class="ppv-xyz-table derivative-table">
+          <thead><tr>${group.map(field => `<th>${escapeHTML(field)}</th>`).join('')}</tr></thead>
+          <tbody><tr>${group.map(field => `<td class="${derivativeClass(row[field])}">${escapeHTML(row[field] || '–')}</td>`).join('')}</tr></tbody>
+        </table>
+      </div>
+    `).join('')}
+  `;
+  heading?.querySelectorAll('[data-derivative-threshold]').forEach(input => {
+    input.addEventListener('change', event => {
+      const key = event.target.dataset.derivativeThreshold;
+      const value = Math.max(0, Math.min(100, Number.parseFloat(event.target.value)));
+      if (!Number.isFinite(value)) return;
+      state.derivativeThresholds[key] = value;
+      if (state.derivativeThresholds.green <= state.derivativeThresholds.yellow) {
+        state.derivativeThresholds.green = Math.min(100, state.derivativeThresholds.yellow + 1);
+      }
+      renderDerivativeView(showRow);
+    });
+  });
 }
 
 function renderPPVView(showRow) {
@@ -1217,7 +1479,8 @@ function renderRetentionChart(showRow, viewKey, canvasId, sectionId) {
     const meta = $('retentionMeta');
     if (meta) {
       const ldau = Number(retentionRow.LDAU);
-      meta.textContent = `LDAU: ${Number.isFinite(ldau) ? ldau.toLocaleString() : '-'}`;
+      const ldauLabel = `LDAU: ${Number.isFinite(ldau) ? ldau.toLocaleString() : '-'}`;
+      meta.innerHTML = `${ldauLabel}<span class="retention-meta-updated">Unlock Hour Bucket H14 Onwards</span>`;
     }
   }
 
@@ -1252,16 +1515,17 @@ function renderRetentionChart(showRow, viewKey, canvasId, sectionId) {
   const visibleAvailableHours = [...availableHours]
     .filter(hour => hour >= state.retentionChartXMin && hour <= state.retentionChartXMax)
     .sort((a, b) => a - b);
-  const isCombinedNormalisedOverall = !dataset.isPPVBenchmark && state.retentionCardView === 'combined' && String(state.retentionView).toLowerCase() === 'normalised overall' && state.retentionChartXMin === 1 && state.retentionChartXMax === 200;
-  const isH1BaseNormalisedOverall = !dataset.isPPVBenchmark && state.retentionCardView === 'normalised' && String(state.retentionView).toLowerCase() === 'normalised overall' && state.retentionChartXMin === 1 && state.retentionChartXMax === 200;
-  const isH1BaseNormalisedH1H20 = !dataset.isPPVBenchmark && state.retentionCardView === 'normalised' && String(state.retentionView).toLowerCase() === 'normalised overall' && state.retentionChartXMin === 1 && state.retentionChartXMax === 20;
-  const isH1BaseNormalisedH20H50 = !dataset.isPPVBenchmark && state.retentionCardView === 'normalised' && String(state.retentionView).toLowerCase() === 'normalised overall' && state.retentionChartXMin === 20 && state.retentionChartXMax === 50;
-  const isH1BaseNormalisedH50H100 = !dataset.isPPVBenchmark && state.retentionCardView === 'normalised' && String(state.retentionView).toLowerCase() === 'normalised overall' && state.retentionChartXMin === 50 && state.retentionChartXMax === 100;
-  const isH1BaseNormalisedH100H200 = !dataset.isPPVBenchmark && state.retentionCardView === 'normalised' && String(state.retentionView).toLowerCase() === 'normalised overall' && state.retentionChartXMin === 100 && state.retentionChartXMax === 200;
-  const isCombinedNormalisedH1H20 = !dataset.isPPVBenchmark && state.retentionCardView === 'combined' && String(state.retentionView).toLowerCase() === 'normalised overall' && state.retentionChartXMin === 1 && state.retentionChartXMax === 20;
-  const isCombinedNormalisedH20H50 = !dataset.isPPVBenchmark && state.retentionCardView === 'combined' && String(state.retentionView).toLowerCase() === 'normalised overall' && state.retentionChartXMin === 20 && state.retentionChartXMax === 50;
-  const isCombinedNormalisedH50H100 = !dataset.isPPVBenchmark && state.retentionCardView === 'combined' && String(state.retentionView).toLowerCase() === 'normalised overall' && state.retentionChartXMin === 50 && state.retentionChartXMax === 100;
-  const isCombinedNormalisedH100H200 = !dataset.isPPVBenchmark && state.retentionCardView === 'combined' && String(state.retentionView).toLowerCase() === 'normalised overall' && state.retentionChartXMin === 100 && state.retentionChartXMax === 200;
+  const isRetentionSeries = !dataset.isPPVBenchmark;
+  const isCombinedNormalisedOverall = isRetentionSeries && state.retentionCardView === 'combined' && state.retentionChartXMin === 1 && state.retentionChartXMax === 200;
+  const isH1BaseNormalisedOverall = isRetentionSeries && state.retentionCardView === 'normalised' && state.retentionChartXMin === 1 && state.retentionChartXMax === 200;
+  const isH1BaseNormalisedH1H20 = isRetentionSeries && state.retentionCardView === 'normalised' && state.retentionChartXMin === 1 && state.retentionChartXMax === 20;
+  const isH1BaseNormalisedH20H50 = isRetentionSeries && state.retentionCardView === 'normalised' && state.retentionChartXMin === 20 && state.retentionChartXMax === 50;
+  const isH1BaseNormalisedH50H100 = isRetentionSeries && state.retentionCardView === 'normalised' && state.retentionChartXMin === 50 && state.retentionChartXMax === 100;
+  const isH1BaseNormalisedH100H200 = isRetentionSeries && state.retentionCardView === 'normalised' && state.retentionChartXMin === 100 && state.retentionChartXMax === 200;
+  const isCombinedNormalisedH1H20 = isRetentionSeries && state.retentionCardView === 'combined' && state.retentionChartXMin === 1 && state.retentionChartXMax === 20;
+  const isCombinedNormalisedH20H50 = isRetentionSeries && state.retentionCardView === 'combined' && state.retentionChartXMin === 20 && state.retentionChartXMax === 50;
+  const isCombinedNormalisedH50H100 = isRetentionSeries && state.retentionCardView === 'combined' && state.retentionChartXMin === 50 && state.retentionChartXMax === 100;
+  const isCombinedNormalisedH100H200 = isRetentionSeries && state.retentionCardView === 'combined' && state.retentionChartXMin === 100 && state.retentionChartXMax === 200;
   const displayHours = dataset.isPPVBenchmark
     ? visibleAvailableHours
     : isH1BaseNormalisedOverall

@@ -92,17 +92,11 @@ function filterMarkup(field, index) {
       :
     field === 'Show Length'
       ? SHOW_LENGTH_BUCKETS
-      : field === 'Elastic'
-        ? [...new Set(state.allRows.map(row => elasticFilterLabel(row)))].sort((a, b) => {
-            if (a === 'Not Elastic') return 1;
-            if (b === 'Not Elastic') return -1;
-            return Number(a.match(/H(\d+)/)?.[1] || 0) - Number(b.match(/H(\d+)/)?.[1] || 0);
-          })
       : unique(field)
   ).filter(value =>
     String(value).trim() !== '' &&
-    !(field === 'Genre' && normalized(value) === 'column 1') &&
-    !(field === 'Category' && normalized(value) === 'not found')
+    !['not found', 'no change', 'no_change', 'null'].includes(normalized(value)) &&
+    !(field === 'Genre' && normalized(value) === 'column 1')
   );
 
   const optionLabel = value => {
@@ -426,8 +420,6 @@ function applyFilters() {
       const rowValue =
         field === 'Show Length'
           ? showLengthBucket(row[field])
-          : field === 'Elastic'
-            ? filterKey(elasticFilterLabel(row))
           : AUTHOR_BUCKET_FIELDS.has(field)
             ? filterKey(authorFilterBucket(field, row[field]))
           : field === 'Label'

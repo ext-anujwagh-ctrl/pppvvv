@@ -5,19 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>P3 &amp; PPV US UGC</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
-  <link rel="stylesheet" href="style.css?v=dashboard-chart-order-2" />
+  <link rel="stylesheet" href="style.css?v=normalized-hour-hit-area-20261015-1" />
 </head>
 <body>
   <div class="app-shell">
     <header class="topbar">
       <div>
-        <p class="eyebrow">POCKETFM GROWTH TRACKER · <span id="dataStatus">Loading shows…</span> · Last updated 09/10/26</p>
+        <p class="eyebrow">POCKETFM GROWTH TRACKER · <span id="dataStatus">Loading shows…</span></p>
         <h1>P3 &amp; PPV Shows Slate</h1>
       </div>
 
       <div class="topbar-actions">
         <span class="scope-selector-label">View</span>
-        <div id="operationalPPVScope" class="scope-pills" role="group" aria-label="Title Level Detail PPV scope">
+        <div id="operationalPPVScope" class="scope-pills" role="group" aria-label="Title Level Data PPV scope">
           <button type="button" class="scope-pill active" data-operational-scope="all">All</button>
           <button type="button" class="scope-pill" data-operational-scope="p3">P3</button>
           <button type="button" class="scope-pill" data-operational-scope="ppv">PPV</button>
@@ -109,10 +109,14 @@
         <div class="section-heading table-heading">
           <div>
             <p class="eyebrow">SHOWS</p>
-            <h2>Title Level Detail</h2>
+            <h2 class="shows-title">Title Level</h2>
+            <div class="shows-view-tabs" role="tablist" aria-label="Title level view">
+              <button type="button" class="shows-view-tab active" role="tab" aria-selected="true" data-shows-view="data">Title Level Data</button>
+              <button type="button" class="shows-view-tab" role="tab" aria-selected="false" data-shows-view="retention">Title Level Retention</button>
+            </div>
           </div>
 
-          <div class="table-tools">
+          <div class="table-tools shows-data-tools">
             <span id="resultCount">0 results</span>
 
             <button id="openOperationalColumns" class="button button-ghost">
@@ -124,6 +128,17 @@
             </button>
 
             <select id="pageSize">
+              <option value="10">10 rows</option>
+              <option value="50">50 rows</option>
+              <option value="100">100 rows</option>
+            </select>
+          </div>
+          <div class="table-tools shows-retention-tools hidden">
+            <span id="retentionResultCount">0 results</span>
+            <label class="retention-table-filter comparer-field">
+              <select id="titleRetentionType" aria-label="Title level retention type"></select>
+            </label>
+            <select id="retentionPageSize" aria-label="Retention rows per page">
               <option value="10">10 rows</option>
               <option value="50">50 rows</option>
               <option value="100">100 rows</option>
@@ -403,8 +418,14 @@
       <div class="modal-header">
         <div>
           <p class="eyebrow">SHOW DETAILS</p>
-          <h2 id="detailsTitle">Show</h2>
-          <code id="detailsShowId" class="details-show-id"></code>
+          <div class="details-title-row">
+            <h2 id="detailsTitle">Show</h2>
+            <code id="detailsShowId" class="details-show-id"></code>
+          </div>
+          <div class="details-subrow">
+            <span id="detailsGenre" class="details-genre"></span>
+            <div id="detailsLockPoint" class="details-lock-point"></div>
+          </div>
         </div>
 
         <div id="retentionCardViewControls" class="retention-card-view-controls"></div>
@@ -425,13 +446,13 @@
   <script src="vendor/chart.umd.min.js"></script>
   <script src="vendor/xlsx.full.min.js"></script>
   <script src="vendor/jspdf.umd.min.js"></script>
-  <script src="app-config.js?v=retention-range-1"></script>
+  <script src="app-config.js?v=normalized-axis-selector-20261015-2"></script>
   <script src="app-utils.js"></script>
-  <script src="app-filters.js?v=scope-disables-ppv-1"></script>
+  <script src="app-filters.js?v=scope-disables-ppv-4"></script>
   <script src="app-charts.js?v=hold-label-position-3"></script>
-  <script src="app-comparer-modes.js?v=ppv-tags-12"></script>
-  <script src="app-view.js?v=callout-axis-guides-1"></script>
+  <script src="app-comparer-modes.js?v=ppv-tags-16"></script>
+  <script src="app-view.js?v=normalized-axis-selector-20261015-5"></script>
   <script src="app-export.js"></script>
-  <script src="app.js?v=ppv-tags-7"></script>
+  <script src="app.js?v=normalized-axis-selector-20261015-5"></script>
 </body>
 </html>

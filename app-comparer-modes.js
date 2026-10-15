@@ -24,9 +24,15 @@ function benchmarkShowAppliesToGenre(show, genre) {
 }
 
 function ppvFilterValues(kind) {
-  if (kind === 'tag') return [...new Set(state.allRows.map(row => String(row['PPV Tag'] || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  if (kind === 'tag') return [...new Set(
+    state.allRows
+      .map(row => String(row['PPV Tag'] || '').trim())
+      .filter(value => value && !['not found', 'no change', 'no_change', 'null'].includes(value.toLowerCase()))
+  )].sort((a, b) => a.localeCompare(b));
   if (kind === 'genre') return [...new Set(
-    state.allRows.map(row => String(row['Genre'] || '').trim()).filter(Boolean)
+    state.allRows
+      .map(row => String(row['Genre'] || '').trim())
+      .filter(value => value && !['null', 'not found', 'no change'].includes(value.toLowerCase()))
   )].sort((a, b) => a.localeCompare(b));
   const benchmarkRows = state.comparerPPVGenres.flatMap(genre =>
     PPV_BENCHMARK_SHOWS
